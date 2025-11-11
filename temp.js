@@ -4,7 +4,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const listingFormPanel = document.getElementById('listing-form-panel');
   const listingsContainer = document.getElementById('listings-container');
   const listingTemplate = document.getElementById('listing-template');
-  const listingTimeInput = document.getElementById('listing-time');
   const filterType = document.getElementById('filter-type');
   const filterCategory = document.getElementById('filter-category');
   const filterSearch = document.getElementById('filter-search');
@@ -36,8 +35,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const isStorageEnabled = isSupabaseEnabled;
   const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
   const MAX_IMAGE_COUNT = 6;
-  const DEFAULT_DEADLINE_TIME_INPUT = '23:59';
-  const DEFAULT_DEADLINE_TIME_ISO = '23:59:59';
   let modalState = { images: [], index: 0 };
   let activeCategory = 'all';
 
@@ -204,13 +201,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (categoryPanelTitle) {
       categoryPanelTitle.textContent = normalized === 'all'
         ? '全部票券'
-        : `${getCategoryLabel(normalized)}`;
+        : `${getCategoryLabel(normalized)} 刊登`;
     }
 
     updateCategoryPanelSubtitle();
   }
 
-function hideCategoryPanel() {
+  function hideCategoryPanel() {
     if (!categoryPanel) return;
     categoryPanel.classList.add('is-hidden');
     categoryPanel.hidden = true;
@@ -235,37 +232,6 @@ function hideCategoryPanel() {
     hideListingForm();
     updateCategoryPanelSubtitle();
   }
-  function navigateToListingDetail(data) {
-    if (!data) return;
-    const payload = { ...data };
-    if (!payload.__detailBackground) {
-      payload.__detailBackground = getCategoryBackground(payload.category);
-    }
-    payload.__savedAt = Date.now();
-    try {
-      localStorage.setItem('selectedListing', JSON.stringify(payload));
-      if (payload.id) {
-        const cacheKey = 'listingCache';
-        let cache = {};
-        try {
-          cache = JSON.parse(localStorage.getItem(cacheKey) || "{}");
-        } catch (error) {
-          cache = {};
-        }
-        cache[payload.id] = payload;
-        localStorage.setItem(cacheKey, JSON.stringify(cache));
-      }
-    } catch (error) {
-      console.warn('無法快取選取的刊登', error);
-    }
-    const url = new URL('detail.html', window.location.href);
-    if (payload.id) {
-      url.searchParams.set('id', payload.id);
-    }
-    window.location.href = url.toString();
-  }
-
-
 
   const normalizeSupabaseListing = row => {
     if (!row) return null;
@@ -328,25 +294,15 @@ function hideCategoryPanel() {
 
   const combineDateTime = (dateStr, timeStr) => {
     if (!dateStr && !timeStr) return null;
-    const safeTime = timeStr
-      ? (timeStr.length === 5 ? `${timeStr}:00` : timeStr)
-      : DEFAULT_DEADLINE_TIME_ISO;
-    const safeDate = dateStr || (() => {
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = `${now.getMonth() + 1}`.padStart(2, '0');
-      const day = `${now.getDate()}`.padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    })();
-    const combined = `${safeDate}T${safeTime}`;
+    if (!dateStr && timeStr) {
+      const fallback = `1970-01-01T${timeStr.length === 5 ? `${timeStr}:00` : timeStr}`;
+      const dt = new Date(fallback);
+      return Number.isNaN(dt.getTime()) ? null : dt.toISOString();
+    }
+    const safeTime = timeStr && timeStr.length === 5 ? `${timeStr}:00` : (timeStr || '00:00:00');
+    const combined = `${dateStr}T${safeTime}`;
     const result = new Date(combined);
     return Number.isNaN(result.getTime()) ? null : result.toISOString();
-  };
-
-  const ensureDefaultDeadlineTime = () => {
-    if (listingTimeInput && !listingTimeInput.value) {
-      listingTimeInput.value = DEFAULT_DEADLINE_TIME_INPUT;
-    }
   };
 
   const persistListing = async data => {
@@ -510,21 +466,16 @@ function hideCategoryPanel() {
   function createListingCard(data) {
     const card = listingTemplate.content.firstElementChild.cloneNode(true);
     const media = card.querySelector('.listing-card-media');
+    const imageEl = card.querySelector('.listing-card-image');
     const fallback = card.querySelector('.listing-card-fallback');
     const fallbackInitial = fallback ? fallback.querySelector('.fallback-initial') : null;
     const badgesContainer = card.querySelector('.listing-card-badges');
     const titleEl = card.querySelector('.listing-card-title');
+    const idEl = card.querySelector('.listing-card-id');
     const metaEl = card.querySelector('.listing-card-meta');
     const descriptionEl = card.querySelector('.listing-card-description');
-    const publishedEl = card.querySelector('.listing-card-published');
     const priceValueEl = card.querySelector('.price-value');
     const actionBtn = card.querySelector('.listing-card-action');
-    const galleryTrigger = card.querySelector('.listing-card-gallery');
-    const galleryCount = card.querySelector('.listing-card-gallery-count');
-    const sliderWrapper = card.querySelector('.listing-card-slider');
-    const sliderTrack = card.querySelector('.listing-card-slider-track');
-    const sliderNavPrev = card.querySelector('.listing-card-nav-prev');
-    const sliderNavNext = card.querySelector('.listing-card-nav-next');
 
     const imageList = (() => {
       const images = parseImages(data.images);
@@ -539,104 +490,16 @@ function hideCategoryPanel() {
       media.style.background = getCategoryBackground(data.category);
     }
 
-    card.addEventListener('click', () => {
-      navigateToListingDetail(data);
-    });
-    card.style.cursor = 'pointer';
-    card.tabIndex = 0;
-    card.setAttribute('role', 'link');
-    card.addEventListener('keydown', event => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        event.preventDefault();
-        navigateToListingDetail(data);
+    if (imageList.length && imageEl) {
+      imageEl.src = imageList[0].url;
+      imageEl.alt = imageList[0].name || data.title || '刊登圖片';
+      imageEl.loading = 'lazy';
+      card.classList.add('has-image');
+      if (media) {
+        media.addEventListener('click', () => openImageModal(imageList, 0));
+        media.style.cursor = 'pointer';
       }
-    });
-
-    if (sliderWrapper && sliderTrack) {
-      sliderTrack.innerHTML = '';
-      if (imageList.length) {
-        sliderWrapper.hidden = false;
-        card.classList.add('has-image');
-        imageList.forEach((imageData, index) => {
-          if (!imageData || !imageData.url) return;
-          const slide = document.createElement('button');
-          slide.type = 'button';
-          slide.className = 'listing-card-slide';
-          slide.setAttribute('aria-label', `預覽圖片 ${index + 1}`);
-          const slideImg = document.createElement('img');
-          slideImg.src = imageData.url;
-          slideImg.alt = imageData.name || data.title || `刊登圖片 ${index + 1}`;
-          slideImg.loading = 'lazy';
-          slide.appendChild(slideImg);
-          slide.addEventListener('click', event => {
-            event.stopPropagation();
-            openImageModal(imageList, index);
-          });
-          sliderTrack.appendChild(slide);
-        });
-
-        let currentIndex = 0;
-        const showNav = imageList.length > 1;
-        const updateNavState = () => {
-          if (sliderNavPrev) {
-            sliderNavPrev.hidden = !showNav;
-            sliderNavPrev.disabled = !showNav || currentIndex === 0;
-          }
-          if (sliderNavNext) {
-            sliderNavNext.hidden = !showNav;
-            sliderNavNext.disabled = !showNav || currentIndex === imageList.length - 1;
-          }
-        };
-        const scrollToIndex = newIndex => {
-          const clamped = Math.max(0, Math.min(imageList.length - 1, newIndex));
-          currentIndex = clamped;
-          const targetLeft = sliderWrapper.clientWidth * clamped;
-          if (typeof sliderWrapper.scrollTo === 'function') {
-            sliderWrapper.scrollTo({
-              left: targetLeft,
-              behavior: 'smooth'
-            });
-          } else {
-            sliderWrapper.scrollLeft = targetLeft;
-          }
-          updateNavState();
-        };
-        sliderWrapper.scrollLeft = 0;
-        updateNavState();
-        if (sliderNavPrev) {
-          sliderNavPrev.addEventListener('click', event => {
-            event.stopPropagation();
-            scrollToIndex(currentIndex - 1);
-          });
-        }
-        if (sliderNavNext) {
-          sliderNavNext.addEventListener('click', event => {
-            event.stopPropagation();
-            scrollToIndex(currentIndex + 1);
-          });
-        }
-
-        let scrollDebounce;
-        sliderWrapper.addEventListener('scroll', () => {
-          if (!imageList.length) return;
-          if (scrollDebounce) clearTimeout(scrollDebounce);
-          scrollDebounce = setTimeout(() => {
-            const index = Math.round(sliderWrapper.scrollLeft / Math.max(sliderWrapper.clientWidth, 1));
-            if (index !== currentIndex) {
-              currentIndex = Math.max(0, Math.min(imageList.length - 1, index));
-              updateNavState();
-            }
-          }, 80);
-        });
-      } else {
-        sliderWrapper.hidden = true;
-        card.classList.remove('has-image');
-        if (sliderNavPrev) sliderNavPrev.hidden = true;
-        if (sliderNavNext) sliderNavNext.hidden = true;
-      }
-    }
-
-    if (!imageList.length && fallbackInitial) {
+    } else if (fallbackInitial) {
       const initial = (data.category || data.title || '票').trim().charAt(0);
       fallbackInitial.textContent = initial ? initial.toUpperCase() : '票';
       if (fallback) {
@@ -648,6 +511,11 @@ function hideCategoryPanel() {
       titleEl.textContent = data.title || '未命名票券';
     }
 
+    if (idEl) {
+      const idSuffix = (data.id || '').toString().slice(-6);
+      idEl.textContent = idSuffix ? `#${idSuffix}` : '#即時刊登';
+    }
+
     if (metaEl) {
       const metaParts = [];
       if (data.category) metaParts.push(data.category);
@@ -655,17 +523,7 @@ function hideCategoryPanel() {
       if (data.deliveryMethod) metaParts.push(formatDeliveryMethod(data.deliveryMethod));
       if (data.location) metaParts.push(data.location);
       if (data.expiresAt) metaParts.push(`截止 ${formatDateValue(data.expiresAt)}`);
-      metaEl.innerHTML = '';
-      metaEl.classList.toggle('is-empty', metaParts.length === 0);
-      if (metaParts.length === 0) {
-        metaEl.textContent = '活動資訊整理中';
-      } else {
-        metaParts.forEach(part => {
-          const tag = document.createElement('span');
-          tag.textContent = part;
-          metaEl.appendChild(tag);
-        });
-      }
+      metaEl.textContent = metaParts.join(' ・ ');
     }
 
     if (descriptionEl) {
@@ -680,13 +538,6 @@ function hideCategoryPanel() {
       }
     }
 
-    if (publishedEl) {
-      const createdAtValue = data.createdAt ?? data.created_at ?? null;
-      publishedEl.textContent = createdAtValue
-        ? `發佈：${formatDateTimeValue(createdAtValue)}`
-        : '發佈：—';
-    }
-
     if (priceValueEl) {
       if (data.buyNow) {
         priceValueEl.textContent = `NT$ ${Number(data.buyNow).toLocaleString()}`;
@@ -694,33 +545,6 @@ function hideCategoryPanel() {
         priceValueEl.textContent = `原價 NT$ ${Number(data.faceValue).toLocaleString()}`;
       } else {
         priceValueEl.textContent = '面議';
-      }
-    }
-
-
-    if (actionBtn) {
-      actionBtn.textContent = '查看詳情';
-      actionBtn.addEventListener('click', event => {
-        event.stopPropagation();
-        navigateToListingDetail(data);
-      });
-    }
-
-    if (galleryTrigger) {
-      const canPreview = imageModalRoot && imageList.length > 0;
-      if (canPreview) {
-        galleryTrigger.hidden = false;
-        const label = imageList.length > 1 ? `${imageList.length} 張` : '1 張';
-        if (galleryCount) {
-          galleryCount.textContent = label;
-        }
-        galleryTrigger.setAttribute('aria-label', `預覽 ${label}圖片`);
-        galleryTrigger.addEventListener('click', event => {
-          event.stopPropagation();
-          openImageModal(imageList, 0);
-        });
-      } else {
-        galleryTrigger.hidden = true;
       }
     }
 
@@ -743,7 +567,20 @@ function hideCategoryPanel() {
       }
     }
 
-        if (card && media && !imageList.length) {
+    if (actionBtn) {
+      const contact = data.sellerContact && data.sellerContact.trim();
+      actionBtn.textContent = contact ? '顯示聯絡方式' : '查看更多';
+      actionBtn.addEventListener('click', event => {
+        event.stopPropagation();
+        if (contact) {
+          showToast(`聯絡方式：${contact}`);
+        } else {
+          showToast('此刊登尚未提供聯絡方式。');
+        }
+      });
+    }
+
+    if (card && media && !imageList.length) {
       card.classList.add('is-placeholder');
     }
 
@@ -765,6 +602,40 @@ function hideCategoryPanel() {
     if (!categoryPanel) return;
     showCategoryPanel();
     categoryPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function createNewListingCallout() {
+    const card = document.createElement('article');
+    card.className = 'listing-card listing-card--create';
+    card.innerHTML = `
+      <div class="listing-card-media">
+        <div class="listing-card-create-icon">+</div>
+      </div>
+      <div class="listing-card-body">
+        <div class="listing-card-title-row">
+          <h3 class="listing-card-title">建立新刊登</h3>
+        </div>
+        <p class="listing-card-meta">分享你的票券資訊，立即觸及等候的買家與收藏者。</p>
+        <p class="listing-card-description">支援圖片上傳、交付方式、截止時間與聯絡資訊，自訂你的刊登細節。</p>
+      </div>
+      <div class="listing-card-footer">
+        <div class="listing-card-price">
+          <span class="price-label">開始</span>
+          <strong class="price-value">快速建立</strong>
+        </div>
+        <button class="listing-card-action" type="button">前往表單</button>
+      </div>
+    `;
+
+    const actionBtn = card.querySelector('.listing-card-action');
+    if (actionBtn) {
+      actionBtn.addEventListener('click', event => {
+        event.stopPropagation();
+        scrollToListingForm();
+      });
+    }
+    card.addEventListener('click', scrollToListingForm);
+    return card;
   }
 
   /**
@@ -845,6 +716,7 @@ function hideCategoryPanel() {
 
     // 清空目前的列表並插入建立刊登卡片
     listingsContainer.innerHTML = '';
+    listingsContainer.appendChild(createNewListingCallout());
 
     // 顯示結果
     if (filteredListings.length === 0) {
@@ -957,7 +829,6 @@ function hideCategoryPanel() {
       renderListings();
       listingForm.reset();
       if (listingImageInput) listingImageInput.value = '';
-      ensureDefaultDeadlineTime();
       setActiveCategory('all', { syncSelect: true, syncNav: true });
       showCategoryPanel();
       showToast('刊登已成功發布！');
@@ -1002,7 +873,6 @@ function hideCategoryPanel() {
    */
   function initialize() {
     const initialCategory = filterCategory ? (filterCategory.value || 'all') : 'all';
-    ensureDefaultDeadlineTime();
     setActiveCategory(initialCategory, { syncSelect: true, syncNav: true });
     showCategoryPanel();
     renderListings();
@@ -1011,9 +881,6 @@ function hideCategoryPanel() {
     // 綁定表單和篩選器事件
     if (listingForm) {
       listingForm.addEventListener('submit', handleFormSubmit);
-      listingForm.addEventListener('reset', () => {
-        setTimeout(ensureDefaultDeadlineTime, 0);
-      });
     }
     if (filterType) filterType.addEventListener('change', renderListings);
     if (filterSearch) filterSearch.addEventListener('input', renderListings);

@@ -1,234 +1,218 @@
 <!DOCTYPE html>
+
 <html lang="zh-Hant">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>票券交易交流站</title>
-    <link rel="stylesheet" href="./assets/styles.css" />
-  </head>
-  <body>
-    <header class="app-header">
-      <div class="header-top">
-        <div class="headline">
-          <h1>TikSwap</h1>
-          <p class="tagline">讓票券交換更簡單、更安全</p>
-        </div>
-      </div>
-    </header>
-
-    <main class="app-shell">
-      <section class="panel collapsible is-collapsed">
-        <div class="panel-header">
-          <h2>建立刊登</h2>
-          <button class="panel-toggle" aria-expanded="false">+</button>
-        </div>
-        <div class="panel-content">
-          <form id="listing-form" class="form-grid">
-            <div class="field-group span-2">
-              <div class="field">
-                <label for="listing-title">刊登標題</label>
-                <input id="listing-title" name="title" required placeholder="例如：Taylor Swift VIP席位" />
-              </div>
-              <div class="field field-quantity">
-                <label for="listing-quantity">數量</label>
-                <input id="listing-quantity" name="quantity" type="number" min="1" value="1" />
-              </div>
-            </div>
-            <div class="field">
-              <label for="listing-type">刊登類型</label>
-              <select id="listing-type" name="type" required>
-                <option value="">請選擇</option>
-                <option value="auction">出價</option>
-                <option value="transfer">讓票</option>
-                <option value="swap">交換</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="listing-category">票券類型</label>
-              <select id="listing-category" name="category">
-                <option value="">請選擇</option>
-                <option value="演唱會">演唱會</option>
-                <option value="體育賽事">體育賽事</option>
-                <option value="戲劇舞台">戲劇舞台</option>
-                <option value="綜藝活動">綜藝活動</option>
-                <option value="展覽 / 市集">展覽 / 市集</option>
-                <option value="收藏品 / 周邊">收藏品 / 周邊</option>
-                <option value="其他">其他（請於詳細資訊補充）</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="face-value">原價（選填）</label>
-              <input id="face-value" name="faceValue" type="number" min="0" step="1" placeholder="例如：1500" />
-            </div>
-            <div class="field">
-              <label for="buy-now">直接成交價（選填）</label>
-              <input id="buy-now" name="buyNow" type="number" min="0" step="1" placeholder="例如：2200" />
-            </div>
-            <div class="field">
-              <label for="delivery-method">交付方式</label>
-              <select id="delivery-method" name="deliveryMethod" required>
-                <option value="">請選擇</option>
-                <option value="meetup">面交</option>
-                <option value="shipping">寄件</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="listing-urgency">急迫程度</label>
-              <select id="listing-urgency" name="urgency">
-                <option value="normal">一般</option>
-                <option value="urgent">超急</option>
-              </select>
-            </div>
-            <div class="field span-2 deadline-field">
-              <div class="deadline-inputs">
-                <div class="deadline-control">
-                  <label class="deadline-control-label" for="listing-date">截止日期</label>
-                  <input id="listing-date" name="expiresDate" type="date" class="deadline-input" />
-                </div>
-                <div class="deadline-control">
-                  <label class="deadline-control-label" for="listing-time">截止時間</label>
-                  <input id="listing-time" name="expiresTime" type="time" class="deadline-input" step="60" />
-                </div>
-              </div>
-            </div>
-            <div class="field">
-              <label for="listing-location">地點</label>
-              <input id="listing-location" name="location"/>
-            </div>
-            <div class="field">
-              <label for="swap-lookfor">交換偏好（若刊登類型為交換）</label>
-              <input id="swap-lookfor" name="swapPreferences"/>
-            </div>
-            <div class="field span-2">
-              <label for="listing-description">其他資訊（選填）</label>
-              <textarea id="listing-description" name="description" rows="4" placeholder="座位資訊"></textarea>
-              <label class="file-label" for="listing-images">上傳圖片（最多 6 張）</label>
-              <input id="listing-images" name="listing-images" type="file" accept="image/*" multiple />
-            </div>
-            <div class="field">
-              <label for="seller-name">聯絡人姓名</label>
-              <input id="seller-name" name="sellerName" required />
-            </div>
-            <div class="field">
-              <label for="seller-contact">聯絡方式</label>
-              <input id="seller-contact" name="sellerContact" required/>
-            </div>
-            <button class="primary span-2" type="submit">發布刊登</button>
-          </form>
-        </div>
-      </section>
-
-      <section class="panel collapsible">
-        <div class="panel-header">
-          <h2>進行中的刊登</h2>
-          <button class="panel-toggle" aria-expanded="true">-</button>
-        </div>
-        <div class="panel-content">
-          <div class="listing-header-toolbar">
-            <div class="filters">
-              <div class="filters-primary">
-                <div class="filter">
-                  <label for="filter-type">刊登類型</label>
-                  <select id="filter-type">
-                    <option value="all">全部</option>
-                    <option value="auction">出價</option>
-                    <option value="transfer">讓票</option>
-                    <option value="swap">交換</option>
-                  </select>
-                </div>
-                <div class="filter">
-                  <label for="filter-category">票券類型</label>
-                  <select id="filter-category">
-                    <option value="all">全部</option>
-                    <option value="演唱會">演唱會</option>
-                    <option value="體育賽事">體育賽事</option>
-                    <option value="戲劇舞台">戲劇舞台</option>
-                    <option value="綜藝活動">綜藝活動</option>
-                    <option value="展覽 / 市集">展覽 / 市集</option>
-                    <option value="收藏品 / 周邊">收藏品 / 周邊</option>
-                    <option value="其他">其他</option>
-                  </select>
-                </div>
-                <div class="filter">
-                  <label for="filter-delivery">交付方式</label>
-                  <select id="filter-delivery">
-                    <option value="all">全部</option>
-                    <option value="meetup">面交</option>
-                    <option value="shipping">寄件</option>
-                  </select>
-                </div>
-                <div class="filter">
-                  <label for="filter-quantity-min">數量</label>
-                  <input id="filter-quantity-min" type="number" min="1" placeholder="至少" />
-                </div>
-
-                <div class="filter filter-range">
-                  <label class="filter-range-label" for="filter-created-start">發佈日期</label>
-                  <div class="filter-range-fields">
-                    <input id="filter-created-start" type="date" class="filter-range-input" />
-                    <span class="filter-range-separator">至</span>
-                    <input id="filter-created-end" type="date" class="filter-range-input" />
-                  </div>
-                </div>
-                <div class="filter filter-range">
-                  <label class="filter-range-label" for="filter-expires-start">截止日期</label>
-                  <div class="filter-range-fields">
-                    <input id="filter-expires-start" type="date" class="filter-range-input" />
-                    <span class="filter-range-separator">至</span>
-                    <input id="filter-expires-end" type="date" class="filter-range-input" />
-                  </div>
-                </div>
-                <div class="filter filter-search">
-                  <label for="filter-search">搜尋</label>
-                  <input id="filter-search" type="search" placeholder="搜尋..." />
-                </div>
-                <div class="filter-clear-wrapper">
-                  <button type="button" id="filter-clear" class="filter-clear">快速清除</button>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div id="listings-container" class="listing-grid"></div>
-        </div>
-      </section>
-    </main>
-
-    <div id="toast-root" class="toast-root" aria-live="polite"></div>
-
-    <template id="listing-template">
-      <article class="listing-card">
-        <header class="listing-header">
-          <div>
-            <h3 class="listing-title"></h3>
-            <p class="listing-meta"></p>
-          </div>
-          <div class="badges"></div>
-        </header>
-        <div class="listing-details"></div>
-        <div class="listing-description">
-          <span class="listing-description-label">其他資訊</span>
-          <p class="listing-description-text"></p>
-        </div>
-        <div class="listing-media"></div>
-        <div class="listing-footer"></div>
-      </article>
-    </template>
-
-    <div id="image-modal" class="image-modal" aria-hidden="true">
-      <div class="image-modal-backdrop"></div>
-      <div class="image-modal-content" role="dialog" aria-modal="true" aria-label="圖片預覽">
-        <button type="button" class="image-modal-close" aria-label="關閉">×</button>
-        <img class="image-modal-image" alt="刊登圖片預覽" />
-        <div class="image-modal-controls">
-          <button type="button" class="image-modal-nav image-modal-prev" aria-label="上一張">‹</button>
-          <span class="image-modal-counter"></span>
-          <button type="button" class="image-modal-nav image-modal-next" aria-label="下一張">›</button>
-        </div>
-      </div>
-    </div>
-
-    <script src="config.js"></script>
-    <script type="module">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>票券交易交流站</title>
+<link href="./assets/styles.css" rel="stylesheet"/>
+</head>
+<body data-theme="dark">
+<div class="app-layout">
+<aside class="app-sidebar">
+<div class="sidebar-brand">
+<h1>TikSwap</h1>
+</div>
+<div class="sidebar-actions">
+<button class="sidebar-action" data-scroll-target="#listing-form-panel" type="button">+ 建立刊登</button>
+</div>
+<nav aria-label="票券分類" class="sidebar-nav">
+<button aria-pressed="true" class="is-active" data-category="all" type="button">
+<span aria-hidden="true" class="nav-indicator"></span>
+<span>全部票券</span>
+</button>
+<button aria-pressed="false" data-category="演唱會" type="button">
+<span aria-hidden="true" class="nav-indicator"></span>
+<span>演唱會</span>
+</button>
+<button aria-pressed="false" data-category="體育賽事" type="button">
+<span aria-hidden="true" class="nav-indicator"></span>
+<span>體育賽事</span>
+</button>
+<button aria-pressed="false" data-category="戲劇舞台" type="button">
+<span aria-hidden="true" class="nav-indicator"></span>
+<span>戲劇舞台</span>
+</button>
+<button aria-pressed="false" data-category="綜藝活動" type="button">
+<span aria-hidden="true" class="nav-indicator"></span>
+<span>綜藝活動</span>
+</button>
+<button aria-pressed="false" data-category="展覽 / 市集" type="button">
+<span aria-hidden="true" class="nav-indicator"></span>
+<span>展覽 / 市集</span>
+</button>
+<button aria-pressed="false" data-category="收藏品 / 周邊" type="button">
+<span aria-hidden="true" class="nav-indicator"></span>
+<span>收藏品 / 周邊</span>
+</button>
+<button aria-pressed="false" data-category="其他" type="button">
+<span aria-hidden="true" class="nav-indicator"></span>
+<span>其他類別</span>
+</button>
+</nav>
+<div class="sidebar-footer">重新發現熱門票券與收藏品</div>
+</aside>
+<div class="app-main">
+<header class="app-topbar">
+  <div class="topbar-actions">
+    <button class="ghost-button theme-toggle" id="theme-toggle" type="button" aria-label="切換為亮色模式"></button>
+    <button class="ghost-button login-button" type="button">會員登入</button>
+  </div>
+</header>
+<div class="app-content">
+<main class="app-shell">
+<section class="panel listing-form-panel is-hidden" hidden="" id="listing-form-panel">
+<header class="panel-heading">
+<h2>建立刊登</h2>
+<p class="panel-subtitle">填寫票券資訊、上傳圖片並提交，讓買家立即找到你。</p>
+</header>
+<form class="form-grid" id="listing-form">
+<div class="field-group span-2">
+<div class="field">
+<label for="listing-title">刊登標題</label>
+<input id="listing-title" name="title" placeholder="例如：Taylor Swift VIP席位" required=""/>
+</div>
+<div class="field field-quantity">
+<label for="listing-quantity">數量</label>
+<input id="listing-quantity" min="1" name="quantity" type="number" value="1"/>
+</div>
+</div>
+<div class="field">
+<label for="listing-type">刊登類型</label>
+<select id="listing-type" name="type" required="">
+<option value="">請選擇</option>
+<option value="auction">出價</option>
+<option value="transfer">讓票</option>
+<option value="swap">交換</option>
+</select>
+</div>
+<div class="field">
+<label for="listing-category">票券類型</label>
+<select id="listing-category" name="category">
+<option value="">請選擇</option>
+<option value="演唱會">演唱會</option>
+<option value="體育賽事">體育賽事</option>
+<option value="戲劇舞台">戲劇舞台</option>
+<option value="綜藝活動">綜藝活動</option>
+<option value="展覽 / 市集">展覽 / 市集</option>
+<option value="收藏品 / 周邊">收藏品 / 周邊</option>
+<option value="其他">其他（請於詳細資訊補充）</option>
+</select>
+</div>
+<div class="field">
+<label for="face-value">原價（選填）</label>
+<input id="face-value" min="0" name="faceValue" placeholder="例如：1500" step="1" type="number"/>
+</div>
+<div class="field">
+<label for="buy-now">直接成交價（選填）</label>
+<input id="buy-now" min="0" name="buyNow" placeholder="例如：2200" step="1" type="number"/>
+</div>
+<div class="field">
+<label for="delivery-method">交付方式</label>
+<select id="delivery-method" name="deliveryMethod" required="">
+<option value="">請選擇</option>
+<option value="meetup">面交</option>
+<option value="shipping">寄件</option>
+</select>
+</div>
+<div class="field">
+<label for="listing-urgency">急迫程度</label>
+<select id="listing-urgency" name="urgency">
+<option value="normal">一般</option>
+<option value="urgent">超急</option>
+</select>
+</div>
+<div class="field span-2 deadline-field">
+<div class="deadline-inputs">
+<div class="deadline-control">
+<label class="deadline-control-label" for="listing-date">截止日期</label>
+<input class="deadline-input" id="listing-date" name="expiresDate" type="date"/>
+</div>
+<div class="deadline-control">
+<label class="deadline-control-label" for="listing-time">截止時間</label>
+<input class="deadline-input" id="listing-time" name="expiresTime" step="60" type="time"/>
+</div>
+</div>
+</div>
+<div class="field">
+<label for="listing-location">地點</label>
+<input id="listing-location" name="location"/>
+</div>
+<div class="field">
+<label for="swap-lookfor">交換偏好（若刊登類型為交換）</label>
+<input id="swap-lookfor" name="swapPreferences"/>
+</div>
+<div class="field span-2">
+<label for="listing-description">其他資訊（選填）</label>
+<textarea id="listing-description" name="description" placeholder="座位資訊" rows="4"></textarea>
+<label class="file-label" for="listing-images">上傳圖片（最多 6 張）</label>
+<input accept="image/*" id="listing-images" multiple="" name="listing-images" type="file"/>
+</div>
+<div class="field">
+<label for="seller-name">聯絡人姓名</label>
+<input id="seller-name" name="sellerName" required=""/>
+</div>
+<div class="field">
+<label for="seller-contact">聯絡方式</label>
+<input id="seller-contact" name="sellerContact" required=""/>
+</div>
+<button class="primary span-2" type="submit">發布刊登</button>
+</form>
+</section>
+<section class="panel category-panel" id="category-panel"><header class="panel-heading"><h2 id="category-panel-title">全部票券</h2><p class="panel-subtitle" id="category-panel-subtitle">選擇左側類別以查看對應的刊登與篩選工具。</p></header><div class="panel-body"><div class="listing-header-toolbar"><div class="filters"><div class="filters-primary"><div class="filter"><label for="filter-type">刊登類型</label><select id="filter-type"><option value="all">全部</option><option value="auction">出價</option><option value="transfer">讓票</option><option value="swap">交換</option></select></div><div class="filter"><label for="filter-delivery">交付方式</label><select id="filter-delivery"><option value="all">全部</option><option value="meetup">面交</option><option value="shipping">寄件</option></select></div><div class="filter"><label for="filter-quantity-min">數量</label><input id="filter-quantity-min" min="1" placeholder="至少" type="number"/></div><div class="filter filter-range"><label class="filter-range-label" for="filter-created-start">發佈日期</label><div class="filter-range-fields"><input class="filter-range-input" id="filter-created-start" type="date"/><span class="filter-range-separator">至</span><input class="filter-range-input" id="filter-created-end" type="date"/></div></div><div class="filter filter-range"><label class="filter-range-label" for="filter-expires-start">截止日期</label><div class="filter-range-fields"><input class="filter-range-input" id="filter-expires-start" type="date"/><span class="filter-range-separator">至</span><input class="filter-range-input" id="filter-expires-end" type="date"/></div></div><div class="filter filter-search"><label for="filter-search">搜尋</label><input id="filter-search" placeholder="搜尋..." type="search"/></div><div class="filter-clear-wrapper"><button class="filter-clear" id="filter-clear" type="button">快速清除</button></div></div></div></div><div class="listing-grid" id="listings-container"></div></div></section>
+</main>
+</div>
+</div>
+</div>
+<div aria-live="polite" class="toast-root" id="toast-root"></div>
+<template id="listing-template">
+<article class="listing-card">
+<div class="listing-card-media">
+<div class="listing-card-slider" hidden>
+<div class="listing-card-slider-track"></div>
+</div>
+<div class="listing-card-fallback">
+<span class="fallback-initial">TS</span>
+</div>
+<div class="listing-card-badges"></div>
+<button class="listing-card-gallery" type="button" aria-label="預覽圖片" hidden>
+<span class="listing-card-gallery-icon"></span>
+<span class="listing-card-gallery-count"></span>
+</button>
+<button class="listing-card-nav listing-card-nav-prev" type="button" aria-label="上一張" hidden>‹</button>
+<button class="listing-card-nav listing-card-nav-next" type="button" aria-label="下一張" hidden>›</button>
+</div>
+<div class="listing-card-body">
+<div class="listing-card-title-row">
+<h3 class="listing-card-title"></h3>
+</div>
+<p class="listing-card-meta"></p>
+<p class="listing-card-description"></p>
+<p class="listing-card-published">發佈時間：—</p>
+</div>
+<div class="listing-card-footer">
+<div class="listing-card-price">
+<span class="price-label">價格</span>
+<strong class="price-value"></strong>
+</div>
+<button class="listing-card-action" type="button">顯示聯絡方式</button>
+</div>
+</article>
+</template>
+<div aria-hidden="true" class="image-modal" id="image-modal">
+<div class="image-modal-backdrop"></div>
+<div aria-label="圖片預覽" aria-modal="true" class="image-modal-content" role="dialog">
+<button aria-label="關閉" class="image-modal-close" type="button">×</button>
+<img alt="刊登圖片預覽" class="image-modal-image"/>
+<div class="image-modal-controls">
+<button aria-label="上一張" class="image-modal-nav image-modal-prev" type="button">‹</button>
+<span class="image-modal-counter"></span>
+<button aria-label="下一張" class="image-modal-nav image-modal-next" type="button">›</button>
+</div>
+</div>
+</div>
+<script src="config.js"></script>
+<script type="module">
       import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
       let supabaseClient = null;
@@ -247,6 +231,7 @@
 
       window.__supabase = supabaseClient;
     </script>
-    <script src="./assets/app.js"></script>
-  </body>
+<script src="./assets/theme.js" type="module"></script>
+<script src="./assets/app.js"></script>
+</body>
 </html>
