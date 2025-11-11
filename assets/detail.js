@@ -1,8 +1,74 @@
 const TYPE_LABELS = { auction: '出價', transfer: '讓票', swap: '交換' };
+const supabaseClient = window.__supabase || null;
+const listingsTableName = 'listings';
+const isSupabaseEnabled = Boolean(supabaseClient);
 
 const formatDeliveryMethod = value => {
   if (!value) return '—';
   return value === 'meetup' ? '面交' : value === 'shipping' ? '寄件' : value;
+};
+
+const parseImages = value => {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter(img => img && img.url);
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed.filter(img => img && img.url) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+};
+
+const toIsoString = value => {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+};
+
+const normalizeListing = row => {
+  if (!row) return null;
+  const images = parseImages(row.images ?? row.image_urls ?? null);
+  const imageUrl = row.imageUrl ?? row.image_url ?? images[0]?.url ?? null;
+  return {
+    id: (row.id ?? row.uuid ?? '').toString() || Date.now().toString(),
+    title: row.title ?? '',
+    description: row.description ?? '',
+    type: row.type ?? '',
+    category: row.category ?? '',
+    quantity: row.quantity ?? '',
+    deliveryMethod: row.deliveryMethod ?? row.delivery_method ?? '',
+    expiresAt: toIsoString(row.expiresAt ?? row.expires_at) ?? row.expires_at ?? null,
+    buyNow: row.buyNow ?? row.buy_now ?? '',
+    faceValue: row.faceValue ?? row.face_value ?? '',
+    sellerName: row.sellerName ?? row.seller_name ?? '',
+    sellerContact: row.sellerContact ?? row.seller_contact ?? '',
+    urgency: row.urgency ?? '',
+    images,
+    imageUrl,
+    createdAt: toIsoString(row.createdAt ?? row.created_at) ?? new Date().toISOString()
+  };
+};
+
+const fetchListingById = async id => {
+  if (!isSupabaseEnabled || !id) return null;
+  try {
+    const { data, error } = await supabaseClient
+      .from(listingsTableName)
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) {
+      console.error('Failed to fetch listing from Supabase', error);
+      return null;
+    }
+    return normalizeListing(data);
+  } catch (error) {
+    console.error('Unexpected error when fetching listing', error);
+    return null;
+  }
 };
 
 const formatDateValue = value => {
@@ -154,7 +220,12 @@ const renderListing = (listing, root) => {
     createdEl.textContent = createdValue ? formatDateValue(createdValue) : '—';
   }
 
-  const images = Array.isArray(listing.images) ? listing.images.slice() : [];
+  const images = Array.isArray(listing.images)
+    ? listing.images.slice()
+    : parseImages(listing.images ?? null);
+  if (!Array.isArray(listing.images)) {
+    listing.images = images;
+  }
   if (listing.imageUrl && !images.length) {
     images.push({ url: listing.imageUrl, name: listing.title || 'listing-image' });
   }
@@ -316,7 +387,7 @@ const renderListing = (listing, root) => {
   }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const root = document.querySelector('[data-detail-root]');
   const emptyState = document.querySelector('[data-empty]');
   if (!root) return;
@@ -345,6 +416,24 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     } catch (error) {
       console.warn('無法從快取中讀取刊登資料', error);
+    }
+  }
+
+  if (!listing && listingId) {
+    listing = await fetchListingById(listingId);
+    if (listing) {
+      try {
+        localStorage.setItem('selectedListing', JSON.stringify(listing));
+        let cache = {};
+        try {
+          cache = JSON.parse(localStorage.getItem('listingCache') || '{}');
+        } catch {
+          cache = {};
+        }
+        localStorage.setItem('listingCache', JSON.stringify({ ...cache, [listing.id]: listing }));
+      } catch (error) {
+        console.warn('無法快取遠端載入的刊登資料', error);
+      }
     }
   }
 

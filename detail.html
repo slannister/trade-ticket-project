@@ -85,6 +85,26 @@
         </div>
       </div>
     </div>
+    <script src="config.js"></script>
+    <script type="module">
+      import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+      let supabaseClient = null;
+
+      if (
+        window.supabaseConfig &&
+        window.supabaseConfig.url &&
+        window.supabaseConfig.url.startsWith('http') &&
+        window.supabaseConfig.anonKey &&
+        !window.supabaseConfig.anonKey.startsWith('YOUR_SUPABASE')
+      ) {
+        supabaseClient = createClient(window.supabaseConfig.url, window.supabaseConfig.anonKey);
+      } else {
+        console.warn('Supabase config is not set. The detail page will rely on 瀏覽器暫存資料。');
+      }
+
+      window.__supabase = supabaseClient;
+    </script>
     <script src="./assets/theme.js" type="module"></script>
     <script src="./assets/detail.js" type="module"></script>
   </body>
