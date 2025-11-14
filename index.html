@@ -16,11 +16,11 @@
 <div class="sidebar-actions">
 <button class="sidebar-action" data-scroll-target="#listing-form-panel" type="button">+ 建立刊登</button>
 </div>
-<nav aria-label="票券分類" class="sidebar-nav">
-<button aria-pressed="true" class="is-active" data-category="all" type="button">
-<span aria-hidden="true" class="nav-indicator"></span>
-<span>全部票券</span>
-</button>
+  <nav aria-label="票券分類" class="sidebar-nav">
+    <button aria-pressed="true" class="is-active" data-category="all" type="button">
+      <span aria-hidden="true" class="nav-indicator"></span>
+      <span>全部票券</span>
+    </button>
 <button aria-pressed="false" data-category="演唱會" type="button">
 <span aria-hidden="true" class="nav-indicator"></span>
 <span>演唱會</span>
@@ -41,22 +41,37 @@
 <span aria-hidden="true" class="nav-indicator"></span>
 <span>展覽 / 市集</span>
 </button>
-<button aria-pressed="false" data-category="收藏品 / 周邊" type="button">
-<span aria-hidden="true" class="nav-indicator"></span>
-<span>收藏品 / 周邊</span>
-</button>
-<button aria-pressed="false" data-category="其他" type="button">
-<span aria-hidden="true" class="nav-indicator"></span>
-<span>其他類別</span>
-</button>
-</nav>
+    <button aria-pressed="false" data-category="收藏品 / 周邊" type="button">
+      <span aria-hidden="true" class="nav-indicator"></span>
+      <span>收藏品 / 周邊</span>
+    </button>
+    <button aria-pressed="false" data-category="其他" type="button">
+      <span aria-hidden="true" class="nav-indicator"></span>
+      <span>其他類別</span>
+    </button>
+    <div class="sidebar-divider" role="separator" aria-hidden="true"></div>
+    <p class="sidebar-personal-label">會員空間</p>
+    <button aria-pressed="false" class="sidebar-personal" data-category="my-listings" type="button">
+      <span aria-hidden="true" class="nav-indicator"></span>
+      <span>我的刊登</span>
+    </button>
+    <button aria-pressed="false" class="sidebar-personal" data-category="favorites" type="button">
+      <span aria-hidden="true" class="nav-indicator"></span>
+      <span>我的最愛</span>
+    </button>
+  </nav>
 <div class="sidebar-footer">重新發現熱門票券與收藏品</div>
 </aside>
 <div class="app-main">
 <header class="app-topbar">
   <div class="topbar-actions">
     <button class="ghost-button theme-toggle" id="theme-toggle" type="button" aria-label="切換為亮色模式"></button>
-    <button class="ghost-button login-button" type="button">會員登入</button>
+    <div class="account-control" data-account-control>
+      <button class="ghost-button login-button member-trigger" type="button" data-member-trigger data-member-state="signed-out" data-account-trigger>登入 / 註冊</button>
+      <div class="account-menu" data-account-menu hidden>
+        <button class="account-menu-item" type="button" data-account-logout>會員登出</button>
+      </div>
+    </div>
   </div>
 </header>
 <div class="app-content">
@@ -100,12 +115,10 @@
 </select>
 </div>
 <div class="field">
-<label for="face-value">原價（選填）</label>
-<input id="face-value" min="0" name="faceValue" placeholder="例如：1500" step="1" type="number"/>
-</div>
-<div class="field">
 <label for="buy-now">直接成交價（選填）</label>
 <input id="buy-now" min="0" name="buyNow" placeholder="例如：2200" step="1" type="number"/>
+</div>
+<div class="field">
 </div>
 <div class="field">
 <label for="delivery-method">交付方式</label>
@@ -156,10 +169,10 @@
 <label for="seller-contact">聯絡方式</label>
 <input id="seller-contact" name="sellerContact" required=""/>
 </div>
-<button class="primary span-2" type="submit">發布刊登</button>
+<div class="form-actions span-2"><button class="primary" type="submit">發布刊登</button><button class="form-cancel" type="button" id="listing-cancel-edit" hidden>取消編輯</button></div>
 </form>
 </section>
-<section class="panel category-panel" id="category-panel"><header class="panel-heading"><h2 id="category-panel-title">全部票券</h2><p class="panel-subtitle" id="category-panel-subtitle">選擇左側類別以查看對應的刊登與篩選工具。</p></header><div class="panel-body"><div class="listing-header-toolbar"><div class="filters"><div class="filters-primary"><div class="filter"><label for="filter-type">刊登類型</label><select id="filter-type"><option value="all">全部</option><option value="auction">出價</option><option value="transfer">讓票</option><option value="swap">交換</option></select></div><div class="filter"><label for="filter-delivery">交付方式</label><select id="filter-delivery"><option value="all">全部</option><option value="meetup">面交</option><option value="shipping">寄件</option></select></div><div class="filter"><label for="filter-quantity-min">數量</label><input id="filter-quantity-min" min="1" placeholder="至少" type="number"/></div><div class="filter filter-range"><label class="filter-range-label" for="filter-created-start">發佈日期</label><div class="filter-range-fields"><input class="filter-range-input" id="filter-created-start" type="date"/><span class="filter-range-separator">至</span><input class="filter-range-input" id="filter-created-end" type="date"/></div></div><div class="filter filter-range"><label class="filter-range-label" for="filter-expires-start">截止日期</label><div class="filter-range-fields"><input class="filter-range-input" id="filter-expires-start" type="date"/><span class="filter-range-separator">至</span><input class="filter-range-input" id="filter-expires-end" type="date"/></div></div><div class="filter filter-search"><label for="filter-search">搜尋</label><input id="filter-search" placeholder="搜尋..." type="search"/></div><div class="filter-clear-wrapper"><button class="filter-clear" id="filter-clear" type="button">快速清除</button></div></div></div></div><div class="listing-grid" id="listings-container"></div></div></section>
+<section class="panel category-panel" id="category-panel"><header class="panel-heading"><h2 id="category-panel-title">全部票券</h2><p class="panel-subtitle" id="category-panel-subtitle">選擇左側類別以查看對應的刊登與篩選工具。</p></header><div class="panel-body"><div class="listing-header-toolbar"><div class="filters"><div class="filters-primary"><div class="filter"><label for="filter-type">刊登類型</label><select id="filter-type"><option value="all">全部</option><option value="auction">出價</option><option value="transfer">讓票</option><option value="swap">交換</option></select></div><div class="filter"><label for="filter-delivery">交付方式</label><select id="filter-delivery"><option value="all">全部</option><option value="meetup">面交</option><option value="shipping">寄件</option></select></div><div class="filter"><label for="filter-quantity-min">數量</label><input id="filter-quantity-min" min="1" placeholder="至少" type="number"/></div><div class="filter filter-range"><label class="filter-range-label" for="filter-created-start">發佈日期</label><div class="filter-range-fields"><input class="filter-range-input" id="filter-created-start" type="date"/><span class="filter-range-separator">至</span><input class="filter-range-input" id="filter-created-end" type="date"/></div></div><div class="filter filter-range"><label class="filter-range-label" for="filter-expires-start">截止日期</label><div class="filter-range-fields"><input class="filter-range-input" id="filter-expires-start" type="date"/><span class="filter-range-separator">至</span><input class="filter-range-input" id="filter-expires-end" type="date"/></div></div><div class="filter filter-search"><label for="filter-search">搜尋</label><input id="filter-search" placeholder="搜尋..." type="search"/></div><div class="filter-clear-wrapper"><button class="filter-clear" id="filter-clear" type="button">快速清除</button></div></div></div></div><div class="listing-grid" id="listings-container"></div><div class="listing-pagination" id="listing-pagination" hidden><button class="pagination-button" type="button" data-pagination-prev aria-label="上一頁"><span>上一頁</span></button><div class="pagination-status" aria-live="polite"><span class="pagination-info" data-pagination-info>第 0-0 筆，共 0 筆</span><span class="pagination-page" data-pagination-page>第 1 / 1 頁</span></div><button class="pagination-button" type="button" data-pagination-next aria-label="下一頁"><span>下一頁</span></button></div></div></section>
 </main>
 </div>
 </div>
@@ -184,7 +197,19 @@
 </div>
 <div class="listing-card-body">
 <div class="listing-card-title-row">
+<div class="listing-card-title-group">
 <h3 class="listing-card-title"></h3>
+<div class="listing-card-owner-menu" hidden>
+  <button class="owner-menu-trigger" type="button" aria-haspopup="true" aria-expanded="false" aria-label="列出管理動作">
+    <span class="owner-menu-dots" aria-hidden="true">⋯</span>
+  </button>
+  <div class="owner-menu" role="menu">
+    <button class="owner-menu-item listing-card-edit" type="button" role="menuitem">編輯</button>
+    <button class="owner-menu-item listing-card-delete" type="button" role="menuitem">刪除</button>
+  </div>
+</div>
+</div>
+<button class="listing-card-favorite" type="button" aria-pressed="false" aria-label="加入我的最愛"></button>
 </div>
 <p class="listing-card-meta"></p>
 <p class="listing-card-description"></p>
@@ -211,6 +236,80 @@
 </div>
 </div>
 </div>
+</div>
+<div aria-hidden="true" class="member-modal" id="member-modal">
+  <div class="member-modal-backdrop" data-member-dismiss></div>
+  <section class="member-modal-panel" aria-labelledby="member-modal-title" aria-modal="true" role="dialog">
+    <button aria-label="關閉會員中心" class="member-modal-close" data-member-dismiss type="button">×</button>
+    <header class="member-modal-header">
+      <button class="member-logout" data-member-logout type="button" hidden>登出帳號</button>
+    </header>
+    <div class="member-modal-body">
+      <div class="member-tabs" role="tablist">
+        <button class="member-tab is-active" data-member-tab="login" role="tab" type="button">
+          <span class="member-tab-label">登入</span>
+        </button>
+        <button class="member-tab" data-member-tab="signup" role="tab" type="button">
+          <span class="member-tab-label">建立帳號</span>
+        </button>
+      </div>
+      <section class="member-view" data-member-view="login">
+        <h3>登入</h3>
+        <form class="member-form" id="member-login-form">
+          <label class="member-field">
+            <span>電子郵件</span>
+            <input autocomplete="email" id="member-login-email" name="email" placeholder="you@example.com" required type="email"/>
+          </label>
+          <label class="member-field">
+            <span>密碼</span>
+            <input autocomplete="current-password" id="member-login-password" minlength="6" name="password" placeholder="至少 6 碼" required type="password"/>
+          </label>
+          <label class="member-checkbox">
+            <input name="remember" type="checkbox"/>
+            <span>記住 Email</span>
+          </label>
+          <button class="member-primary" type="submit">登入帳號</button>
+        </form>
+        <div class="member-inline-links">
+          <button class="member-link" data-member-route="signup" type="button">我要註冊</button>
+          <span class="member-inline-divider">·</span>
+          <button class="member-link" data-member-route="reset" type="button">忘記密碼？</button>
+        </div>
+      </section>
+      <section class="member-view" data-member-view="signup" hidden>
+        <h3>建立帳號</h3>
+        <form class="member-form" id="member-signup-form">
+          <label class="member-field">
+            <span>電子郵件</span>
+            <input autocomplete="email" id="member-signup-email" name="email" placeholder="you@example.com" required type="email"/>
+          </label>
+          <label class="member-field">
+            <span>密碼</span>
+            <input autocomplete="new-password" id="member-signup-password" minlength="6" name="password" placeholder="至少 6 碼" required type="password"/>
+          </label>
+          <label class="member-field">
+            <span>確認密碼</span>
+            <input autocomplete="new-password" id="member-signup-confirm" minlength="6" name="confirmPassword" placeholder="再次輸入" required type="password"/>
+          </label>
+          <button class="member-primary" type="submit">建立會員</button>
+        </form>
+        <p class="member-footnote">已經有帳號？ <button class="member-link" data-member-route="login" type="button">返回登入</button></p>
+      </section>
+      <section class="member-view" data-member-view="reset" hidden>
+        <h3>重設密碼</h3>
+        <form class="member-form" id="member-reset-form">
+          <label class="member-field">
+            <span>電子郵件</span>
+            <input autocomplete="email" name="email" placeholder="you@example.com" required type="email"/>
+          </label>
+          <button class="member-primary" type="submit">寄送重設連結</button>
+        </form>
+        <p class="member-footnote">已經記起密碼？ <button class="member-link" data-member-route="login" type="button">返回登入</button></p>
+      </section>
+      <div aria-live="polite" class="member-message" data-member-message hidden></div>
+    </div>
+  </section>
+</div>
 <script src="config.js"></script>
 <script type="module">
       import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -232,6 +331,6 @@
       window.__supabase = supabaseClient;
     </script>
 <script src="./assets/theme.js" type="module"></script>
-<script src="./assets/app.js"></script>
+<script src="./assets/app.js" type="module"></script>
 </body>
 </html>

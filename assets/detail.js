@@ -2,6 +2,10 @@ const TYPE_LABELS = { auction: '出價', transfer: '讓票', swap: '交換' };
 const supabaseClient = window.__supabase || null;
 const listingsTableName = 'listings';
 const isSupabaseEnabled = Boolean(supabaseClient);
+const SELECTED_LISTING_KEY = 'selectedListing';
+const LISTING_CACHE_KEY = 'listingCache';
+const WINDOW_TRANSFER_KEY = '__tikswapSelectedListing';
+let cleanupSliderResize = null;
 
 const formatDeliveryMethod = value => {
   if (!value) return '—';
@@ -50,6 +54,188 @@ const normalizeListing = row => {
     imageUrl,
     createdAt: toIsoString(row.createdAt ?? row.created_at) ?? new Date().toISOString()
   };
+};
+
+const persistSelectedListing = listing => {
+  if (!listing) return;
+  let serialized = '';
+  try {
+    serialized = JSON.stringify(listing);
+  } catch (error) {
+    console.warn('無法序列化刊登資料', error);
+    return;
+  }
+  try {
+    localStorage.setItem(SELECTED_LISTING_KEY, serialized);
+  } catch (error) {
+    console.warn('無法寫入選取刊登快取', error);
+  }
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(SELECTED_LISTING_KEY, serialized);
+    }
+  } catch {
+    /* ignore */
+  }
+  if (typeof window !== 'undefined') {
+    try {
+      let transferState = {};
+      if (window.name && window.name.trim()) {
+        try {
+          transferState = JSON.parse(window.name);
+        } catch {
+          transferState = {};
+        }
+      }
+      transferState[WINDOW_TRANSFER_KEY] = serialized;
+      window.name = JSON.stringify(transferState);
+    } catch {
+      try {
+        window.name = serialized;
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+};
+
+const persistListingCache = listing => {
+  if (!listing || !listing.id) return;
+  try {
+    const cache = JSON.parse(localStorage.getItem(LISTING_CACHE_KEY) || '{}');
+    cache[listing.id] = listing;
+    localStorage.setItem(LISTING_CACHE_KEY, JSON.stringify(cache));
+  } catch (error) {
+    console.warn('無法同步刊登快取', error);
+  }
+};
+
+const readListingFromStorage = (getStorage, listingId) => {
+  try {
+    const storage = getStorage();
+    if (!storage || typeof storage.getItem !== 'function') return null;
+    const raw = storage.getItem(SELECTED_LISTING_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!listingId || !parsed?.id || parsed.id.toString() === listingId) {
+      return parsed;
+    }
+  } catch (error) {
+    console.warn('無法解析快取的刊登資料', error);
+  }
+  return null;
+};
+
+const readListingFromWindowName = listingId => {
+  if (typeof window === 'undefined' || !window.name || !window.name.trim()) return null;
+  try {
+    const parsed = JSON.parse(window.name);
+    let payload = null;
+    if (parsed && typeof parsed === 'object' && parsed !== null) {
+      if (parsed[WINDOW_TRANSFER_KEY]) {
+        payload = parsed[WINDOW_TRANSFER_KEY];
+        delete parsed[WINDOW_TRANSFER_KEY];
+        window.name = JSON.stringify(parsed);
+      } else if (parsed.id) {
+        payload = parsed;
+        window.name = '';
+      }
+    }
+    if (!payload) return null;
+    const normalized = typeof payload === 'string' ? JSON.parse(payload) : payload;
+    if (!listingId || !normalized?.id || normalized.id.toString() === listingId) {
+      return normalized;
+    }
+  } catch (error) {
+    console.warn('無法從視窗狀態讀取刊登資料', error);
+    window.name = '';
+  }
+  return null;
+};
+
+const readListingFromCache = listingId => {
+  if (!listingId) return null;
+  try {
+    const cache = JSON.parse(localStorage.getItem(LISTING_CACHE_KEY) || '{}');
+    return cache[listingId] || null;
+  } catch (error) {
+    console.warn('無法從快取中讀取刊登資料', error);
+    return null;
+  }
+};
+
+const safeDecodeURIComponent = value => {
+  let result = value;
+  let attempts = 0;
+  while (result && result.includes('%') && attempts < 5) {
+    try {
+      const decoded = decodeURIComponent(result);
+      if (decoded === result) break;
+      result = decoded;
+      attempts += 1;
+    } catch {
+      break;
+    }
+  }
+  return result;
+};
+
+const tryParseJson = (value, listingId) => {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(value);
+    if (listingId && parsed?.id && parsed.id.toString() !== listingId) {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+};
+
+const decodeListingPayload = (encodedValue, listingId) => {
+  if (!encodedValue && (typeof window === 'undefined' || !window.location.hash)) return null;
+  try {
+    let encoded = encodedValue;
+    if (!encoded && typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.hash.slice(1));
+      encoded = params.get('data');
+    }
+    if (!encoded) return null;
+
+    const candidateStrings = [];
+    const urlDecoded = safeDecodeURIComponent(encoded);
+    if (urlDecoded && urlDecoded !== encoded) {
+      candidateStrings.push(urlDecoded);
+    }
+
+    const base64Sources = [encoded, urlDecoded].filter(Boolean);
+    if (typeof window.atob === 'function') {
+      base64Sources.forEach(source => {
+        let normalized = source.replace(/-/g, '+').replace(/_/g, '/');
+        if (normalized.length % 4 !== 0) {
+          normalized += '='.repeat(4 - (normalized.length % 4));
+        }
+        try {
+          const baseDecoded = window.atob(normalized);
+          candidateStrings.push(safeDecodeURIComponent(baseDecoded));
+        } catch {
+          /* ignore base64 decode errors */
+        }
+      });
+    }
+
+    candidateStrings.push(encoded);
+
+    for (const candidate of candidateStrings) {
+      const listing = tryParseJson(candidate, listingId);
+      if (listing) return listing;
+    }
+    return null;
+  } catch (error) {
+    console.warn('無法解析網址中的刊登資料', error);
+    return null;
+  }
 };
 
 const fetchListingById = async id => {
@@ -247,6 +433,11 @@ const renderListing = (listing, root) => {
   let scrollToIndex = () => {};
 
   if (mediaSlider && mediaTrack) {
+    if (cleanupSliderResize) {
+      cleanupSliderResize();
+      cleanupSliderResize = null;
+    }
+
     mediaTrack.innerHTML = '';
     if (validImages.length) {
       mediaSlider.hidden = false;
@@ -281,23 +472,26 @@ const renderListing = (listing, root) => {
         updateThumbnailState(currentSlideIndex);
       };
 
-      scrollToIndex = newIndex => {
-        const clamped = Math.max(0, Math.min(validImages.length - 1, newIndex));
-        currentSlideIndex = clamped;
-        const targetLeft = mediaSlider.clientWidth * clamped;
+      const alignSliderToCurrent = (behavior = 'smooth') => {
+        const targetLeft = mediaSlider.clientWidth * currentSlideIndex;
         if (typeof mediaSlider.scrollTo === 'function') {
           mediaSlider.scrollTo({
             left: targetLeft,
-            behavior: 'smooth'
+            behavior
           });
         } else {
           mediaSlider.scrollLeft = targetLeft;
         }
+      };
+
+      scrollToIndex = (newIndex, behavior = 'smooth') => {
+        const clamped = Math.max(0, Math.min(validImages.length - 1, newIndex));
+        currentSlideIndex = clamped;
+        alignSliderToCurrent(behavior);
         updateNavState();
       };
 
-      mediaSlider.scrollLeft = 0;
-      updateNavState();
+      scrollToIndex(currentSlideIndex, 'auto');
 
       mediaSlider.onscroll = () => {
         if (!validImages.length) return;
@@ -307,6 +501,20 @@ const renderListing = (listing, root) => {
           updateNavState();
         }
       };
+
+      if (typeof ResizeObserver !== 'undefined') {
+        const observer = new ResizeObserver(() => {
+          scrollToIndex(currentSlideIndex, 'auto');
+        });
+        observer.observe(mediaSlider);
+        cleanupSliderResize = () => observer.disconnect();
+      } else {
+        const handleResize = () => {
+          scrollToIndex(currentSlideIndex, 'auto');
+        };
+        window.addEventListener('resize', handleResize);
+        cleanupSliderResize = () => window.removeEventListener('resize', handleResize);
+      }
 
       if (mediaPrev) {
         mediaPrev.onclick = event => {
@@ -347,6 +555,10 @@ const renderListing = (listing, root) => {
       if (mediaView) {
         mediaView.hidden = true;
         mediaView.onclick = null;
+      }
+      if (cleanupSliderResize) {
+        cleanupSliderResize();
+        cleanupSliderResize = null;
       }
       if (mediaFallback) {
         const initial = (listing.category || listing.title || '票').trim().charAt(0);
@@ -394,52 +606,61 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const params = new URLSearchParams(window.location.search);
   const listingId = params.get('id');
+  const payloadParam = params.get('payload');
 
-  let listing = null;
-  try {
-    const stored = localStorage.getItem('selectedListing');
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (!listingId || (parsed && parsed.id && parsed.id.toString() === listingId)) {
-        listing = parsed;
-      }
+  const tryDecodePayload = source => {
+    if (!source) return null;
+    const listing = decodeListingPayload(source, listingId);
+    if (listing) {
+      persistSelectedListing(listing);
+      persistListingCache(listing);
     }
-  } catch (error) {
-    console.warn('無法解析快取的刊登資料', error);
+    return listing;
+  };
+
+  let listing = tryDecodePayload(payloadParam);
+
+  if (!listing) {
+    listing = decodeListingPayload(null, listingId);
+    if (listing) {
+      persistSelectedListing(listing);
+      persistListingCache(listing);
+    }
+  }
+
+  if (!listing) {
+    listing = readListingFromStorage(() => sessionStorage, listingId)
+      || readListingFromStorage(() => localStorage, listingId);
+  }
+
+  if (!listing) {
+    const windowListing = readListingFromWindowName(listingId);
+    if (windowListing) {
+      listing = windowListing;
+      persistSelectedListing(listing);
+      persistListingCache(listing);
+    }
   }
 
   if (!listing && listingId) {
-    try {
-      const cache = JSON.parse(localStorage.getItem('listingCache') || '{}');
-      if (cache && cache[listingId]) {
-        listing = cache[listingId];
-      }
-    } catch (error) {
-      console.warn('無法從快取中讀取刊登資料', error);
+    listing = readListingFromCache(listingId);
+    if (listing) {
+      persistSelectedListing(listing);
     }
   }
 
   if (!listing && listingId) {
     listing = await fetchListingById(listingId);
     if (listing) {
-      try {
-        localStorage.setItem('selectedListing', JSON.stringify(listing));
-        let cache = {};
-        try {
-          cache = JSON.parse(localStorage.getItem('listingCache') || '{}');
-        } catch {
-          cache = {};
-        }
-        localStorage.setItem('listingCache', JSON.stringify({ ...cache, [listing.id]: listing }));
-      } catch (error) {
-        console.warn('無法快取遠端載入的刊登資料', error);
-      }
+      persistSelectedListing(listing);
+      persistListingCache(listing);
     }
   }
 
   if (!listing) {
+    const card = root.querySelector('.detail-card');
+    if (card) card.hidden = true;
     if (emptyState) emptyState.hidden = false;
-    root.innerHTML = '';
     return;
   }
 

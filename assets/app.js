@@ -5,6 +5,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const listingsContainer = document.getElementById('listings-container');
   const listingTemplate = document.getElementById('listing-template');
   const listingTimeInput = document.getElementById('listing-time');
+  const listingCancelButton = document.getElementById('listing-cancel-edit');
+  const paginationRoot = document.getElementById('listing-pagination');
+  const paginationPrev = paginationRoot ? paginationRoot.querySelector('[data-pagination-prev]') : null;
+  const paginationNext = paginationRoot ? paginationRoot.querySelector('[data-pagination-next]') : null;
+  const paginationInfo = paginationRoot ? paginationRoot.querySelector('[data-pagination-info]') : null;
+  const paginationPageDisplay = paginationRoot ? paginationRoot.querySelector('[data-pagination-page]') : null;
   const filterType = document.getElementById('filter-type');
   const filterCategory = document.getElementById('filter-category');
   const filterSearch = document.getElementById('filter-search');
@@ -17,6 +23,19 @@ document.addEventListener('DOMContentLoaded', () => {
   const filterClear = document.getElementById('filter-clear');
   const sidebarAction = document.querySelector('.sidebar-action');
   const sidebarCategoryButtons = document.querySelectorAll('.sidebar-nav button[data-category]');
+  const memberButton = document.querySelector('[data-member-trigger]');
+  const accountControl = document.querySelector('[data-account-control]');
+  const accountMenu = document.querySelector('[data-account-menu]');
+  const accountLogoutButton = document.querySelector('[data-account-logout]');
+  const memberModal = document.getElementById('member-modal');
+  const memberTabs = memberModal ? Array.from(memberModal.querySelectorAll('[data-member-tab]')) : [];
+  const memberRouteButtons = memberModal ? Array.from(memberModal.querySelectorAll('[data-member-route]')) : [];
+  const memberViews = memberModal ? Array.from(memberModal.querySelectorAll('[data-member-view]')) : [];
+  const memberMessage = memberModal ? memberModal.querySelector('[data-member-message]') : null;
+  const memberLogoutButtons = memberModal ? Array.from(memberModal.querySelectorAll('[data-member-logout]')) : [];
+  const memberLoginForm = document.getElementById('member-login-form');
+  const memberSignupForm = document.getElementById('member-signup-form');
+  const memberResetForm = document.getElementById('member-reset-form');
   const categoryPanel = document.getElementById('category-panel');
   const categoryPanelTitle = document.getElementById('category-panel-title');
   const categoryPanelSubtitle = document.getElementById('category-panel-subtitle');
@@ -38,8 +57,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const MAX_IMAGE_COUNT = 6;
   const DEFAULT_DEADLINE_TIME_INPUT = '23:59';
   const DEFAULT_DEADLINE_TIME_ISO = '23:59:59';
+  const MY_LISTINGS_CATEGORY = 'my-listings';
+  const FAVORITES_CATEGORY = 'favorites';
+  const FAVORITES_STORAGE_PREFIX = 'tikswapFavorites:';
+  const REMEMBER_EMAIL_KEY = 'authRememberEmail';
+  const LISTINGS_PER_PAGE = 6;
+  const SELECTED_LISTING_KEY = 'selectedListing';
+  const LISTING_CACHE_KEY = 'listingCache';
+  const WINDOW_TRANSFER_KEY = '__tikswapSelectedListing';
+  const isUuid = value => typeof value === 'string'
+    && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
   let modalState = { images: [], index: 0 };
   let activeCategory = 'all';
+  let memberSession = null;
+  let memberFavorites = new Set();
+  let memberModalView = 'login';
+  let memberFocusReturnElement = null;
+  let memberOriginalOverflow = '';
+  let editingListingId = null;
+  let editingListingOriginal = null;
+  let currentPage = 1;
+  let totalPages = 1;
 
   const formatDeliveryMethod = value => {
     if (!value) return '—';
@@ -181,16 +219,440 @@ document.addEventListener('DOMContentLoaded', () => {
       categoryPanelSubtitle.textContent = '選擇左側類別以查看對應的刊登與篩選工具。';
       return;
     }
+    if (activeCategory === MY_LISTINGS_CATEGORY) {
+      categoryPanelSubtitle.textContent = '顯示由你建立的刊登，可立即編輯或刪除。';
+      return;
+    }
+    if (activeCategory === FAVORITES_CATEGORY) {
+      categoryPanelSubtitle.textContent = '收藏於「我的最愛」的刊登都會集中在這裡。';
+      return;
+    }
     const label = getCategoryLabel(activeCategory);
     categoryPanelSubtitle.textContent = `${label} 的刊登與篩選結果顯示於此。`;
   }
 
+
+
+  const getFavoritesStorageKey = userId => `${FAVORITES_STORAGE_PREFIX}${userId}`;
+
+  const getSessionUser = () => (memberSession && memberSession.user ? memberSession.user : null);
+
+  const getDisplayNameFromUser = user => {
+    if (!user) return '會員';
+    const metaName = user.user_metadata && user.user_metadata.display_name;
+    if (metaName && metaName.trim()) return metaName.trim();
+    if (user.phone) return user.phone;
+    if (user.email) return user.email;
+    return '會員';
+  };
+
+  function loadRememberedEmail() {
+    if (!memberLoginForm) return;
+    try {
+      const saved = localStorage.getItem(REMEMBER_EMAIL_KEY);
+      const emailInput = memberLoginForm.querySelector('input[name="email"]');
+      const rememberInput = memberLoginForm.querySelector('input[name="remember"]');
+      if (saved && emailInput) {
+        emailInput.value = saved;
+        if (rememberInput) rememberInput.checked = true;
+      }
+    } catch (error) {
+      console.warn('無法讀取記住帳號資訊', error);
+    }
+  }
+
+  function persistRememberedEmail(shouldRemember, email) {
+    try {
+      if (shouldRemember && email) {
+        localStorage.setItem(REMEMBER_EMAIL_KEY, email);
+      } else {
+        localStorage.removeItem(REMEMBER_EMAIL_KEY);
+      }
+    } catch (error) {
+      console.warn('無法儲存記住帳號資訊', error);
+    }
+  }
+
+  function loadFavoritesForSession() {
+    memberFavorites = new Set();
+    const user = getSessionUser();
+    if (!user) return;
+    try {
+      const raw = localStorage.getItem(getFavoritesStorageKey(user.id));
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        memberFavorites = new Set(parsed.map(id => id.toString()));
+      }
+    } catch (error) {
+      console.warn('無法讀取收藏資料', error);
+    }
+  }
+
+  function persistFavorites() {
+    const user = getSessionUser();
+    if (!user) return;
+    try {
+      localStorage.setItem(
+        getFavoritesStorageKey(user.id),
+        JSON.stringify(Array.from(memberFavorites))
+      );
+    } catch (error) {
+      console.warn('無法儲存收藏資料', error);
+    }
+  }
+
+  function isFavorite(listingId) {
+    if (!listingId) return false;
+    return memberFavorites.has(listingId.toString());
+  }
+
+  function toggleFavorite(listingId) {
+    if (!listingId) return;
+    if (!ensureAuthenticated({ view: 'login', reason: '請先登入以使用我的最愛。' })) {
+      return;
+    }
+    const key = listingId.toString();
+    if (memberFavorites.has(key)) {
+      memberFavorites.delete(key);
+    } else {
+      memberFavorites.add(key);
+    }
+    persistFavorites();
+    renderListings();
+  }
+
+  function updateMemberUI() {
+    const user = getSessionUser();
+    if (memberButton) {
+      if (user) {
+        memberButton.textContent = `Hi，${getDisplayNameFromUser(user)}`;
+        memberButton.dataset.memberState = 'signed-in';
+      } else {
+        memberButton.textContent = '登入 / 註冊';
+        memberButton.dataset.memberState = 'signed-out';
+      }
+    }
+    memberLogoutButtons.forEach(button => {
+      button.hidden = !user;
+    });
+    if (accountMenu) {
+      accountMenu.classList.remove('is-open');
+      accountMenu.hidden = true;
+    }
+  }
+
+  function setMemberMessage(message, { variant = 'neutral' } = {}) {
+    if (!memberMessage) return;
+    memberMessage.hidden = !message;
+    memberMessage.textContent = message || '';
+    memberMessage.classList.remove('is-error', 'is-success', 'is-warning');
+    if (!message) return;
+    if (variant === 'error') {
+      memberMessage.classList.add('is-error');
+    } else if (variant === 'success') {
+      memberMessage.classList.add('is-success');
+    } else if (variant === 'warning') {
+      memberMessage.classList.add('is-warning');
+    }
+  }
+
+  function setMemberView(view = 'login') {
+    memberModalView = view;
+    memberViews.forEach(section => {
+      const isActive = section.dataset.memberView === view;
+      section.hidden = !isActive;
+    });
+    memberTabs.forEach(tab => {
+      const target = tab.dataset.memberTab;
+      const isActive = target === view;
+      tab.classList.toggle('is-active', isActive);
+      tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+    if (view === 'login') {
+      loadRememberedEmail();
+    }
+  }
+
+  function openMemberModal(initialView = 'login') {
+    if (!memberModal) return;
+    if (!isSupabaseEnabled) {
+      showToast('尚未設定 Supabase 連線，無法使用會員功能。');
+      return;
+    }
+    setMemberView(initialView);
+    if (!memberModal.classList.contains('is-open')) {
+      memberFocusReturnElement = document.activeElement;
+      memberOriginalOverflow = document.body.style.overflow || '';
+    }
+    memberModal.classList.add('is-open');
+    memberModal.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    setMemberMessage('');
+    const activeView = memberViews.find(section => !section.hidden);
+    const firstInput = activeView ? activeView.querySelector('input') : null;
+    if (firstInput && typeof firstInput.focus === 'function') {
+      firstInput.focus({ preventScroll: true });
+    }
+  }
+
+  function closeMemberModal() {
+    if (!memberModal) return;
+    memberModal.classList.remove('is-open');
+    memberModal.setAttribute('aria-hidden', 'true');
+    if (!imageModalRoot || !imageModalRoot.classList.contains('is-visible')) {
+      document.body.style.overflow = memberOriginalOverflow || '';
+    }
+    if (memberFocusReturnElement && typeof memberFocusReturnElement.focus === 'function') {
+      memberFocusReturnElement.focus({ preventScroll: true });
+    }
+    memberFocusReturnElement = null;
+  }
+
+
+  function setMemberFormLoading(form, isLoading) {
+    if (!form) return;
+    const controls = Array.from(form.querySelectorAll('input, button'));
+    controls.forEach(control => {
+      control.disabled = isLoading;
+    });
+  }
+
+  async function handleMemberLogin(event) {
+    event.preventDefault();
+    if (!memberLoginForm) return;
+    if (!isSupabaseEnabled) {
+      setMemberMessage('尚未設定 Supabase 連線，無法使用會員功能。', { variant: 'error' });
+      return;
+    }
+    const formData = new FormData(memberLoginForm);
+    const email = (formData.get('email') || '').toString().trim();
+    const password = (formData.get('password') || '').toString();
+    const remember = formData.get('remember') === 'on';
+    if (!email || !password) {
+      setMemberMessage('請輸入電子郵件與密碼。', { variant: 'error' });
+      return;
+    }
+    setMemberFormLoading(memberLoginForm, true);
+    setMemberMessage('');
+    try {
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      persistRememberedEmail(remember, email);
+      setMemberMessage('登入成功，正在為您更新狀態。', { variant: 'success' });
+    } catch (error) {
+      console.error('Supabase signIn failed', error);
+      setMemberMessage(error.message || '登入失敗，請稍後再試。', { variant: 'error' });
+    } finally {
+      setMemberFormLoading(memberLoginForm, false);
+    }
+  }
+
+  async function handleMemberSignup(event) {
+    event.preventDefault();
+    if (!memberSignupForm) return;
+    if (!isSupabaseEnabled) {
+      setMemberMessage('尚未設定 Supabase 連線，無法使用會員功能。', { variant: 'error' });
+      return;
+    }
+    const formData = new FormData(memberSignupForm);
+    const email = (formData.get('email') || '').toString().trim();
+    const password = (formData.get('password') || '').toString();
+    const confirm = (formData.get('confirmPassword') || '').toString();
+    if (!email || !password || !confirm) {
+      setMemberMessage('請填寫完整的註冊資訊。', { variant: 'error' });
+      return;
+    }
+    if (password.length < 6) {
+      setMemberMessage('密碼至少需要 6 碼。', { variant: 'error' });
+      return;
+    }
+    if (password !== confirm) {
+      setMemberMessage('兩次輸入的密碼不一致。', { variant: 'error' });
+      return;
+    }
+    setMemberFormLoading(memberSignupForm, true);
+    setMemberMessage('');
+    try {
+      const { error } = await supabaseClient.auth.signUp({ email, password });
+      if (error) throw error;
+      setMemberMessage('帳號建立成功！若需驗證請至信箱查收。', { variant: 'success' });
+    } catch (error) {
+      console.error('Supabase signUp failed', error);
+      setMemberMessage(error.message || '註冊失敗，請稍後再試。', { variant: 'error' });
+    } finally {
+      setMemberFormLoading(memberSignupForm, false);
+    }
+  }
+
+  async function handleMemberReset(event) {
+    event.preventDefault();
+    if (!memberResetForm) return;
+    if (!isSupabaseEnabled) {
+      setMemberMessage('尚未設定 Supabase 連線，無法寄送重設連結。', { variant: 'error' });
+      return;
+    }
+    const formData = new FormData(memberResetForm);
+    const email = (formData.get('email') || '').toString().trim();
+    if (!email) {
+      setMemberMessage('請輸入電子郵件。', { variant: 'error' });
+      return;
+    }
+    setMemberFormLoading(memberResetForm, true);
+    setMemberMessage('正在寄送重設連結…');
+    try {
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/index.html`
+      });
+      if (error) throw error;
+      setMemberMessage('已寄出重設密碼連結，請查收信箱。', { variant: 'success' });
+    } catch (error) {
+      console.error('Supabase resetPassword failed', error);
+      setMemberMessage(error.message || '寄送失敗，請稍後再試。', { variant: 'error' });
+    } finally {
+      setMemberFormLoading(memberResetForm, false);
+    }
+  }
+
+  function ensureAuthenticated({ view = 'login', reason = '' } = {}) {
+    if (!isSupabaseEnabled) return true;
+    if (getSessionUser()) return true;
+    openMemberModal(view);
+    if (reason) {
+      setMemberMessage(reason, { variant: 'warning' });
+    }
+    return false;
+  }
+
+  async function handleMemberLogout() {
+    if (!isSupabaseEnabled) {
+      showToast('尚未設定 Supabase 連線，無法使用會員登出。');
+      return;
+    }
+    try {
+      await supabaseClient.auth.signOut();
+    } catch (error) {
+      console.error('Supabase signOut failed', error);
+      showToast('登出失敗，請稍後再試。');
+    }
+  }
+
+  function bindMemberEvents() {
+    if (memberButton) {
+      memberButton.addEventListener('click', () => {
+        if (getSessionUser()) {
+          if (accountMenu) {
+            const isOpen = accountMenu.classList.toggle('is-open');
+            accountMenu.hidden = !isOpen;
+          }
+        } else {
+          openMemberModal('login');
+        }
+      });
+    }
+    memberTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        const targetView = tab.dataset.memberTab;
+        if (!targetView) return;
+        setMemberMessage('');
+        setMemberView(targetView);
+      });
+    });
+    memberRouteButtons.forEach(button => {
+      button.addEventListener('click', event => {
+        event.preventDefault();
+        const targetView = button.dataset.memberRoute || 'login';
+        setMemberMessage('');
+        setMemberView(targetView);
+      });
+    });
+    if (memberModal) {
+      memberModal.addEventListener('click', event => {
+        if (event.target.matches('[data-member-dismiss]')) {
+          event.preventDefault();
+          closeMemberModal();
+        }
+      });
+    }
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && memberModal && memberModal.classList.contains('is-open')) {
+        closeMemberModal();
+      }
+    });
+    if (memberLoginForm) memberLoginForm.addEventListener('submit', handleMemberLogin);
+    if (memberSignupForm) memberSignupForm.addEventListener('submit', handleMemberSignup);
+    if (memberResetForm) memberResetForm.addEventListener('submit', handleMemberReset);
+    memberLogoutButtons.forEach(button => button.addEventListener('click', handleMemberLogout));
+    if (accountLogoutButton) {
+      accountLogoutButton.addEventListener('click', () => {
+        handleMemberLogout();
+        if (accountMenu) {
+          accountMenu.classList.remove('is-open');
+          accountMenu.hidden = true;
+        }
+      });
+    }
+    document.addEventListener('click', event => {
+      if (!accountControl || !accountMenu) return;
+      if (!accountControl.contains(event.target)) {
+        accountMenu.classList.remove('is-open');
+        accountMenu.hidden = true;
+      }
+    });
+  }
+
+  async function refreshMemberSession() {
+    if (!isSupabaseEnabled) return;
+    try {
+      const { data } = await supabaseClient.auth.getSession();
+      memberSession = data.session || null;
+      updateMemberUI();
+      loadFavoritesForSession();
+      renderListings();
+    } catch (error) {
+      console.warn('無法取得會員會話', error);
+    }
+  }
+
+  function initializeMembership() {
+    bindMemberEvents();
+    loadRememberedEmail();
+    if (!isSupabaseEnabled) {
+      updateMemberUI();
+      return;
+    }
+    refreshMemberSession();
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      memberSession = session;
+      updateMemberUI();
+      loadFavoritesForSession();
+      renderListings();
+      if (event === 'SIGNED_IN') {
+        const user = getSessionUser();
+        showToast(`歡迎回來，${getDisplayNameFromUser(user)}！`);
+        closeMemberModal();
+        setMemberMessage('');
+      } else if (event === 'SIGNED_OUT') {
+        showToast('已登出帳號');
+      }
+    });
+  }
   function setActiveCategory(value, { syncSelect = false, syncNav = false } = {}) {
     const normalized = value && value !== '' ? value : 'all';
+    const requiresAuth = normalized === MY_LISTINGS_CATEGORY || normalized === FAVORITES_CATEGORY;
+    if (requiresAuth && !getSessionUser()) {
+      activeCategory = 'all';
+      resetPagination();
+      return;
+    }
     activeCategory = normalized;
+    resetPagination();
 
     if (syncSelect && filterCategory) {
-      filterCategory.value = normalized;
+      const hasOption = Array.from(filterCategory.options || []).some(option => option.value === normalized);
+      if (hasOption) {
+        filterCategory.value = normalized;
+      }
     }
 
     if (syncNav) {
@@ -228,6 +690,132 @@ function hideCategoryPanel() {
     listingFormPanel.hidden = false;
   }
 
+  function setFormMode(mode = 'create') {
+    if (!listingForm) return;
+    const submitButton = listingForm.querySelector('button[type="submit"]');
+    if (submitButton) {
+      submitButton.textContent = mode === 'edit' ? '更新刊登' : '發布刊登';
+    }
+    if (listingCancelButton) {
+      listingCancelButton.hidden = mode !== 'edit';
+    }
+    listingForm.classList.toggle('is-editing', mode === 'edit');
+  }
+
+  function clearEditingState() {
+    editingListingId = null;
+    editingListingOriginal = null;
+    setFormMode('create');
+  }
+
+  function cancelListingEdit() {
+    if (!listingForm) return;
+    const wasEditing = Boolean(editingListingId);
+    listingForm.reset();
+    ensureDefaultDeadlineTime();
+    clearEditingState();
+    scrollToCategoryPanel();
+    if (wasEditing) {
+      showToast('已取消編輯');
+    }
+  }
+
+  function populateListingForm(listing) {
+    if (!listingForm || !listing) return;
+    const assign = (name, value) => {
+      const field = listingForm.elements && listingForm.elements[name];
+      if (field) field.value = value ?? '';
+    };
+    assign('title', listing.title || '');
+    assign('quantity', listing.quantity || 1);
+    assign('type', listing.type || '');
+    assign('category', listing.category || '');
+    assign('faceValue', listing.faceValue || '');
+    assign('buyNow', listing.buyNow || '');
+    assign('deliveryMethod', listing.deliveryMethod || '');
+    assign('urgency', listing.urgency || 'normal');
+    assign('location', listing.location || '');
+    assign('sellerName', listing.sellerName || '');
+    assign('sellerContact', listing.sellerContact || '');
+    assign('swapPreferences', listing.swapPreferences || '');
+    assign('description', listing.description || '');
+
+    const expiresDateField = listingForm.elements && listingForm.elements['expiresDate'];
+    const expiresTimeField = listingForm.elements && listingForm.elements['expiresTime'];
+    const expiresDateValue = listing.expiresDate || (listing.expiresAt ? toIsoString(listing.expiresAt)?.slice(0, 10) : '');
+    if (expiresDateField) {
+      expiresDateField.value = expiresDateValue || '';
+    }
+    if (expiresTimeField) {
+      if (listing.expiresTime) {
+        expiresTimeField.value = formatTimeValue(listing.expiresTime);
+      } else if (listing.expiresAt) {
+        const parsed = parseDate(listing.expiresAt);
+        if (parsed && !Number.isNaN(parsed.getTime())) {
+          expiresTimeField.value = `${parsed.getHours().toString().padStart(2, '0')}:${parsed.getMinutes().toString().padStart(2, '0')}`;
+        } else {
+          expiresTimeField.value = DEFAULT_DEADLINE_TIME_INPUT;
+        }
+      } else {
+        expiresTimeField.value = DEFAULT_DEADLINE_TIME_INPUT;
+      }
+    }
+  }
+
+  function beginEditListing(listing) {
+    if (!listing || !listing.id) return;
+    const user = getSessionUser();
+    if (!user || listing.ownerId !== user.id) {
+      showToast('僅能編輯自己的刊登。');
+      return;
+    }
+    editingListingId = listing.id;
+    editingListingOriginal = JSON.parse(JSON.stringify(listing));
+    populateListingForm(listing);
+    setFormMode('edit');
+    showListingForm();
+    scrollToListingForm();
+  }
+
+  async function deleteListing(listing) {
+    if (!listing || !listing.id) return;
+    const user = getSessionUser();
+    if (!user || listing.ownerId !== user.id) {
+      showToast('僅能刪除自己的刊登。');
+      return;
+    }
+    const confirmed = typeof window !== 'undefined'
+      ? window.confirm('確定要刪除此刊登嗎？')
+      : true;
+    if (!confirmed) return;
+    const listingId = listing.id.toString();
+    try {
+      if (isSupabaseEnabled) {
+        await supabaseClient
+          .from(listingsTableName)
+          .delete()
+          .eq('id', listingId);
+      }
+    } catch (error) {
+      console.error('Supabase 刪除失敗', error);
+    } finally {
+      const index = listings.findIndex(item => (item.id ? item.id.toString() : '') === listingId);
+      if (index >= 0) {
+        listings.splice(index, 1);
+      }
+      if (memberFavorites.has(listingId)) {
+        memberFavorites.delete(listingId);
+        persistFavorites();
+      }
+      renderListings();
+      showToast('刊登已刪除');
+      if (editingListingId === listingId) {
+        clearEditingState();
+        if (listingForm) listingForm.reset();
+      }
+    }
+  }
+
   function showCategoryPanel() {
     if (!categoryPanel) return;
     categoryPanel.hidden = false;
@@ -235,6 +823,81 @@ function hideCategoryPanel() {
     hideListingForm();
     updateCategoryPanelSubtitle();
   }
+
+  function persistSelectedListingPayload(payload) {
+    if (!payload) return;
+    let serialized = '';
+    try {
+      serialized = JSON.stringify(payload);
+    } catch (error) {
+      console.warn('無法序列化刊登資料', error);
+      return;
+    }
+    try {
+      localStorage.setItem(SELECTED_LISTING_KEY, serialized);
+    } catch (error) {
+      console.warn('無法快取選取的刊登', error);
+    }
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem(SELECTED_LISTING_KEY, serialized);
+      }
+    } catch {
+      /* sessionStorage 失敗時略過 */
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        let transferState = {};
+        if (window.name && window.name.trim()) {
+          try {
+            transferState = JSON.parse(window.name);
+          } catch {
+            transferState = {};
+          }
+        }
+        transferState[WINDOW_TRANSFER_KEY] = serialized;
+        window.name = JSON.stringify(transferState);
+      } catch {
+        try {
+          window.name = serialized;
+        } catch {
+          /* ignore window name assignment failure */
+        }
+      }
+    }
+  }
+
+  function persistListingCache(payload) {
+    if (!payload || !payload.id) return;
+    try {
+      const raw = localStorage.getItem(LISTING_CACHE_KEY) || '{}';
+      const cache = JSON.parse(raw);
+      cache[payload.id] = payload;
+      localStorage.setItem(LISTING_CACHE_KEY, JSON.stringify(cache));
+    } catch (error) {
+      console.warn('無法更新刊登快取', error);
+    }
+  }
+
+  function encodeListingForUrl(payload) {
+    if (!payload) return '';
+    try {
+      const json = JSON.stringify(payload);
+      if (typeof window !== 'undefined' && typeof window.btoa === 'function') {
+        const safeJson = encodeURIComponent(json);
+        const base64 = window.btoa(safeJson)
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_')
+          .replace(/=+$/g, '');
+        return base64;
+      }
+      return encodeURIComponent(json);
+    } catch (error) {
+      console.warn('無法序列化刊登資料供網址使用', error);
+      return '';
+    }
+  }
+
   function navigateToListingDetail(data) {
     if (!data) return;
     const payload = { ...data };
@@ -242,25 +905,18 @@ function hideCategoryPanel() {
       payload.__detailBackground = getCategoryBackground(payload.category);
     }
     payload.__savedAt = Date.now();
-    try {
-      localStorage.setItem('selectedListing', JSON.stringify(payload));
-      if (payload.id) {
-        const cacheKey = 'listingCache';
-        let cache = {};
-        try {
-          cache = JSON.parse(localStorage.getItem(cacheKey) || "{}");
-        } catch (error) {
-          cache = {};
-        }
-        cache[payload.id] = payload;
-        localStorage.setItem(cacheKey, JSON.stringify(cache));
-      }
-    } catch (error) {
-      console.warn('無法快取選取的刊登', error);
-    }
+    persistSelectedListingPayload(payload);
+    persistListingCache(payload);
     const url = new URL('detail.html', window.location.href);
     if (payload.id) {
       url.searchParams.set('id', payload.id);
+    }
+    const encoded = encodeListingForUrl(payload);
+    if (encoded) {
+      url.searchParams.set('payload', encoded);
+      url.hash = `data=${encoded}`;
+    } else {
+      url.hash = '';
     }
     window.location.href = url.toString();
   }
@@ -287,6 +943,7 @@ function hideCategoryPanel() {
       title: row.title ?? '',
       type: row.type ?? '',
       category: row.category ?? '',
+      ownerId: (row.owner_id ?? row.ownerId ?? null) && (row.owner_id ?? row.ownerId ?? null).toString(),
       quantity: row.quantity ?? '',
       faceValue: row.faceValue ?? row.face_value ?? '',
       buyNow: row.buyNow ?? row.buy_now ?? '',
@@ -354,7 +1011,9 @@ function hideCategoryPanel() {
       return { ...data };
     }
 
+    const hasValidId = isUuid(data.id);
     const payload = {
+      id: hasValidId ? data.id : undefined,
       title: data.title ?? null,
       type: data.type ?? null,
       category: data.category ?? null,
@@ -370,6 +1029,7 @@ function hideCategoryPanel() {
       urgency: data.urgency ?? null,
       description: data.description ?? null,
       images: data.images ?? null,
+      owner_id: data.ownerId ?? null,
       created_at: data.createdAt ?? new Date().toISOString()
     };
 
@@ -377,11 +1037,12 @@ function hideCategoryPanel() {
       if (payload[key] === undefined) delete payload[key];
     });
 
-    const { data: inserted, error } = await supabaseClient
-      .from(listingsTableName)
-      .insert(payload)
-      .select()
-      .single();
+    const query = supabaseClient.from(listingsTableName);
+    const request = hasValidId
+      ? query.upsert(payload, { onConflict: 'id' })
+      : query.insert(payload);
+
+    const { data: inserted, error } = await request.select().single();
 
     if (error) {
       console.error('Failed to persist listing to Supabase', error);
@@ -519,12 +1180,18 @@ function hideCategoryPanel() {
     const publishedEl = card.querySelector('.listing-card-published');
     const priceValueEl = card.querySelector('.price-value');
     const actionBtn = card.querySelector('.listing-card-action');
+    const favoriteButton = card.querySelector('.listing-card-favorite');
     const galleryTrigger = card.querySelector('.listing-card-gallery');
     const galleryCount = card.querySelector('.listing-card-gallery-count');
     const sliderWrapper = card.querySelector('.listing-card-slider');
     const sliderTrack = card.querySelector('.listing-card-slider-track');
     const sliderNavPrev = card.querySelector('.listing-card-nav-prev');
     const sliderNavNext = card.querySelector('.listing-card-nav-next');
+    const ownerMenuWrapper = card.querySelector('.listing-card-owner-menu');
+    const ownerMenuTrigger = ownerMenuWrapper ? ownerMenuWrapper.querySelector('.owner-menu-trigger') : null;
+    const ownerMenu = ownerMenuWrapper ? ownerMenuWrapper.querySelector('.owner-menu') : null;
+    const editBtn = card.querySelector('.listing-card-edit');
+    const deleteBtn = card.querySelector('.listing-card-delete');
 
     const imageList = (() => {
       const images = parseImages(data.images);
@@ -552,6 +1219,57 @@ function hideCategoryPanel() {
       }
     });
 
+    if (favoriteButton) {
+      const fav = isFavorite(data.id);
+      favoriteButton.classList.toggle('is-active', fav);
+      favoriteButton.setAttribute('aria-pressed', fav ? 'true' : 'false');
+      favoriteButton.setAttribute('aria-label', fav ? '從我的最愛移除' : '加入我的最愛');
+      favoriteButton.title = fav ? '從我的最愛移除' : '加入我的最愛';
+      favoriteButton.addEventListener('click', event => {
+        event.stopPropagation();
+        toggleFavorite(data.id);
+      });
+    }
+
+    
+    const currentUser = getSessionUser();
+    const isMyListingsView = activeCategory === MY_LISTINGS_CATEGORY;
+    const isOwner = Boolean(currentUser && data.ownerId && currentUser.id === data.ownerId && isMyListingsView);
+
+    if (ownerMenuWrapper) {
+      ownerMenuWrapper.hidden = !isOwner;
+      if (!isOwner && ownerMenu) {
+        ownerMenu.classList.remove('is-open');
+      }
+    }
+    if (isOwner && ownerMenu && ownerMenuTrigger) {
+      const closeMenu = () => {
+        ownerMenu.classList.remove('is-open');
+        ownerMenuTrigger.setAttribute('aria-expanded', 'false');
+      };
+      ownerMenuTrigger.addEventListener('click', event => {
+        event.stopPropagation();
+        const isOpen = ownerMenu.classList.toggle('is-open');
+        ownerMenuTrigger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      });
+      document.addEventListener('click', () => closeMenu(), { once: false });
+      ownerMenu.addEventListener('click', event => event.stopPropagation());
+      if (editBtn) {
+        editBtn.addEventListener('click', event => {
+          event.stopPropagation();
+          ownerMenu.classList.remove('is-open');
+          beginEditListing(data);
+        });
+      }
+      if (deleteBtn) {
+        deleteBtn.addEventListener('click', event => {
+          event.stopPropagation();
+          ownerMenu.classList.remove('is-open');
+          deleteListing(data);
+        });
+      }
+    }
+
     if (sliderWrapper && sliderTrack) {
       sliderTrack.innerHTML = '';
       if (imageList.length) {
@@ -562,15 +1280,16 @@ function hideCategoryPanel() {
           const slide = document.createElement('button');
           slide.type = 'button';
           slide.className = 'listing-card-slide';
-          slide.setAttribute('aria-label', `預覽圖片 ${index + 1}`);
+          slide.setAttribute('aria-label', `查看詳情（圖片 ${index + 1}）`);
           const slideImg = document.createElement('img');
           slideImg.src = imageData.url;
           slideImg.alt = imageData.name || data.title || `刊登圖片 ${index + 1}`;
           slideImg.loading = 'lazy';
           slide.appendChild(slideImg);
           slide.addEventListener('click', event => {
+            event.preventDefault();
             event.stopPropagation();
-            openImageModal(imageList, index);
+            navigateToListingDetail(data);
           });
           sliderTrack.appendChild(slide);
         });
@@ -714,7 +1433,9 @@ function hideCategoryPanel() {
         if (galleryCount) {
           galleryCount.textContent = label;
         }
-        galleryTrigger.setAttribute('aria-label', `預覽 ${label}圖片`);
+        const previewLabel = `預覽 ${label}圖片`;
+        galleryTrigger.setAttribute('aria-label', previewLabel);
+        galleryTrigger.title = previewLabel;
         galleryTrigger.addEventListener('click', event => {
           event.stopPropagation();
           openImageModal(imageList, 0);
@@ -752,6 +1473,9 @@ function hideCategoryPanel() {
 
   function scrollToListingForm() {
     if (!listingForm || !listingFormPanel) return;
+    if (!ensureAuthenticated({ view: 'signup', reason: '登入後即可建立新的刊登。' })) {
+      return;
+    }
     hideCategoryPanel();
     showListingForm();
     listingFormPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -767,9 +1491,41 @@ function hideCategoryPanel() {
     categoryPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
+  function resetPagination() {
+    currentPage = 1;
+  }
+
   /**
    * 重設篩選器輸入欄位
    */
+  function updatePaginationControls({ totalItems, startIndex, visibleCount }) {
+    if (!paginationRoot) return;
+    const shouldShow = totalItems > LISTINGS_PER_PAGE;
+    paginationRoot.hidden = !shouldShow;
+    if (!shouldShow) {
+      if (paginationInfo) paginationInfo.textContent = '';
+      if (paginationPageDisplay) paginationPageDisplay.textContent = '';
+      if (paginationPrev) paginationPrev.disabled = true;
+      if (paginationNext) paginationNext.disabled = true;
+      return;
+    }
+    const safeVisible = Math.max(visibleCount || 0, 0);
+    const start = startIndex + 1;
+    const end = Math.min(totalItems, startIndex + safeVisible);
+    if (paginationInfo) {
+      paginationInfo.textContent = `第 ${start}-${end} 筆，共 ${totalItems} 筆`;
+    }
+    if (paginationPageDisplay) {
+      paginationPageDisplay.textContent = `第 ${currentPage} / ${totalPages} 頁`;
+    }
+    if (paginationPrev) {
+      paginationPrev.disabled = currentPage <= 1;
+    }
+    if (paginationNext) {
+      paginationNext.disabled = currentPage >= totalPages;
+    }
+  }
+
   function resetFilters() {
     if (filterType) filterType.value = 'all';
     if (filterSearch) filterSearch.value = '';
@@ -780,18 +1536,23 @@ function hideCategoryPanel() {
     if (filterExpiresStart) filterExpiresStart.value = '';
     if (filterExpiresEnd) filterExpiresEnd.value = '';
     setActiveCategory(activeCategory, { syncSelect: true, syncNav: true });
-    renderListings();
+    renderListings({ resetPage: true });
   }
 
   /**
    * 根據目前的篩選器和搜尋條件，渲染刊登列表
    */
-  function renderListings() {
+  function renderListings(options = {}) {
     if (!listingsContainer) return;
+    const { resetPage = false } = options;
     const typeValue = filterType ? filterType.value : 'all';
-    const categoryValue = filterCategory
-      ? (filterCategory.value || 'all')
-      : activeCategory;
+    const navCategory = activeCategory || 'all';
+    const useSelectCategory = navCategory !== MY_LISTINGS_CATEGORY && navCategory !== FAVORITES_CATEGORY;
+    const categoryValue = useSelectCategory && filterCategory
+      ? (filterCategory.value || navCategory)
+      : navCategory;
+    const sessionUser = getSessionUser();
+    const sessionUserId = sessionUser ? sessionUser.id : null;
     const searchTerm = filterSearch && filterSearch.value ? filterSearch.value.toLowerCase() : '';
     const quantityMinValue = filterQuantityMin && filterQuantityMin.value !== ''
       ? Number(filterQuantityMin.value)
@@ -822,7 +1583,14 @@ function hideCategoryPanel() {
       const lowerSellerName = listing.sellerName ? listing.sellerName.toLowerCase() : '';
       const lowerLocation = listing.location ? listing.location.toLowerCase() : '';
       const typeMatch = typeValue === 'all' || listing.type === typeValue;
-      const categoryMatch = categoryValue === 'all' || listing.category === categoryValue;
+      let categoryMatch = true;
+      if (categoryValue === MY_LISTINGS_CATEGORY) {
+        categoryMatch = Boolean(sessionUserId && listing.ownerId && sessionUserId === listing.ownerId);
+      } else if (categoryValue === FAVORITES_CATEGORY) {
+        categoryMatch = Boolean(sessionUserId && isFavorite(listing.id));
+      } else {
+        categoryMatch = categoryValue === 'all' || listing.category === categoryValue;
+      }
       const searchMatch = !searchTerm ||
         lowerTitle.includes(searchTerm) ||
         lowerDescription.includes(searchTerm) ||
@@ -842,12 +1610,29 @@ function hideCategoryPanel() {
       const expiresMatch = expiresStartMatch && expiresEndMatch;
       return typeMatch && categoryMatch && searchMatch && quantityMatch && deliveryMatch && createdMatch && expiresMatch;
     });
+    const sortedListings = filteredListings.slice().reverse();
+
+    if (resetPage) {
+      resetPagination();
+    }
+    const totalListings = sortedListings.length;
+    totalPages = Math.max(1, Math.ceil(totalListings / LISTINGS_PER_PAGE));
+    currentPage = Math.min(Math.max(currentPage, 1), totalPages);
+    const startIndex = totalListings ? (currentPage - 1) * LISTINGS_PER_PAGE : 0;
+    const pageListings = totalListings
+      ? sortedListings.slice(startIndex, startIndex + LISTINGS_PER_PAGE)
+      : [];
+    updatePaginationControls({
+      totalItems: totalListings,
+      startIndex,
+      visibleCount: pageListings.length
+    });
 
     // 清空目前的列表並插入建立刊登卡片
     listingsContainer.innerHTML = '';
 
     // 顯示結果
-    if (filteredListings.length === 0) {
+    if (pageListings.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'empty-state';
       empty.textContent = '沒有找到符合條件的刊登。';
@@ -856,13 +1641,10 @@ function hideCategoryPanel() {
     }
 
     // 從最新到最舊顯示
-    filteredListings
-      .slice()
-      .reverse()
-      .forEach(listingData => {
-        const card = createListingCard(listingData);
-        listingsContainer.appendChild(card);
-      });
+    pageListings.forEach(listingData => {
+      const card = createListingCard(listingData);
+      listingsContainer.appendChild(card);
+    });
 
     const scrollContainer = categoryPanel?.closest('.app-content') || categoryPanel;
     if (scrollContainer) {
@@ -899,11 +1681,15 @@ function hideCategoryPanel() {
    */
   async function handleFormSubmit(event) {
     event.preventDefault();
+    if (!ensureAuthenticated({ view: 'login', reason: '請先登入會員再提交刊登。' })) {
+      return;
+    }
 
     const formData = new FormData(listingForm);
     const imageFiles = listingImageInput && listingImageInput.files
       ? Array.from(listingImageInput.files).filter(file => file && file.size > 0)
       : [];
+    const isEditing = Boolean(editingListingId);
 
     if (imageFiles.length > MAX_IMAGE_COUNT) {
       showToast(`最多可上傳 ${MAX_IMAGE_COUNT} 張圖片。`);
@@ -929,9 +1715,13 @@ function hideCategoryPanel() {
     formData.delete('listing-images');
 
     const data = Object.fromEntries(formData.entries());
-    data.id = Date.now().toString();
-    data.createdAt = new Date().toISOString();
+    data.id = isEditing ? editingListingId : Date.now().toString();
+    data.createdAt = isEditing
+      ? (editingListingOriginal?.createdAt || editingListingOriginal?.created_at || new Date().toISOString())
+      : new Date().toISOString();
     data.expiresAt = combineDateTime(data.expiresDate, data.expiresTime);
+    const sessionUser = getSessionUser();
+    data.ownerId = sessionUser ? sessionUser.id : (editingListingOriginal?.ownerId || null);
 
     data.images = [];
 
@@ -947,8 +1737,14 @@ function hideCategoryPanel() {
       }
     }
 
+    if (!data.images.length && isEditing && editingListingOriginal?.images) {
+      data.images = editingListingOriginal.images;
+    }
     if (!data.images.length) {
       delete data.images;
+    }
+    if (isEditing && editingListingOriginal?.imageUrl) {
+      data.imageUrl = editingListingOriginal.imageUrl;
     }
 
     try {
@@ -958,9 +1754,14 @@ function hideCategoryPanel() {
       listingForm.reset();
       if (listingImageInput) listingImageInput.value = '';
       ensureDefaultDeadlineTime();
-      setActiveCategory('all', { syncSelect: true, syncNav: true });
+      clearEditingState();
+      const nextCategory = isEditing ? MY_LISTINGS_CATEGORY : 'all';
+      setActiveCategory(nextCategory, {
+        syncSelect: nextCategory !== MY_LISTINGS_CATEGORY && nextCategory !== FAVORITES_CATEGORY,
+        syncNav: true
+      });
       showCategoryPanel();
-      showToast('刊登已成功發布！');
+      showToast(isEditing ? '刊登已更新！' : '刊登已成功發布！');
       const target = categoryPanel || listingsContainer.parentElement;
       if (target && target.scrollIntoView) {
         target.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -969,6 +1770,9 @@ function hideCategoryPanel() {
       console.error('Failed to save listing to Supabase', error);
       upsertListing(data);
       renderListings();
+      if (!isEditing) {
+        data.id = Date.now().toString();
+      }
       setActiveCategory('all', { syncSelect: true, syncNav: true });
       showCategoryPanel();
       showToast('暫時無法儲存到雲端，資料已存於此頁面。');
@@ -1012,17 +1816,22 @@ function hideCategoryPanel() {
     if (listingForm) {
       listingForm.addEventListener('submit', handleFormSubmit);
       listingForm.addEventListener('reset', () => {
+        clearEditingState();
         setTimeout(ensureDefaultDeadlineTime, 0);
       });
     }
-    if (filterType) filterType.addEventListener('change', renderListings);
-    if (filterSearch) filterSearch.addEventListener('input', renderListings);
-    if (filterQuantityMin) filterQuantityMin.addEventListener('input', renderListings);
-    if (filterDelivery) filterDelivery.addEventListener('change', renderListings);
-    if (filterCreatedStart) filterCreatedStart.addEventListener('change', renderListings);
-    if (filterCreatedEnd) filterCreatedEnd.addEventListener('change', renderListings);
-    if (filterExpiresStart) filterExpiresStart.addEventListener('change', renderListings);
-    if (filterExpiresEnd) filterExpiresEnd.addEventListener('change', renderListings);
+    if (listingCancelButton) {
+      listingCancelButton.addEventListener('click', cancelListingEdit);
+    }
+    const rerenderWithReset = () => renderListings({ resetPage: true });
+    if (filterType) filterType.addEventListener('change', rerenderWithReset);
+    if (filterSearch) filterSearch.addEventListener('input', rerenderWithReset);
+    if (filterQuantityMin) filterQuantityMin.addEventListener('input', rerenderWithReset);
+    if (filterDelivery) filterDelivery.addEventListener('change', rerenderWithReset);
+    if (filterCreatedStart) filterCreatedStart.addEventListener('change', rerenderWithReset);
+    if (filterCreatedEnd) filterCreatedEnd.addEventListener('change', rerenderWithReset);
+    if (filterExpiresStart) filterExpiresStart.addEventListener('change', rerenderWithReset);
+    if (filterExpiresEnd) filterExpiresEnd.addEventListener('change', rerenderWithReset);
     if (filterClear) filterClear.addEventListener('click', resetFilters);
     if (filterCategory) {
       filterCategory.addEventListener('change', event => {
@@ -1041,12 +1850,35 @@ function hideCategoryPanel() {
     Array.from(sidebarCategoryButtons || []).forEach(button => {
       button.addEventListener('click', () => {
         const categoryValue = button.dataset.category || 'all';
+        if ((categoryValue === MY_LISTINGS_CATEGORY || categoryValue === FAVORITES_CATEGORY) && !getSessionUser()) {
+          openMemberModal('login');
+          setMemberMessage('請先登入會員以查看此區域。', { variant: 'warning' });
+          return;
+        }
         setActiveCategory(categoryValue, { syncSelect: true, syncNav: true });
         showCategoryPanel();
         renderListings();
         scrollToCategoryPanel();
       });
     });
+
+    if (paginationPrev) {
+      paginationPrev.addEventListener('click', () => {
+        if (currentPage <= 1) return;
+        currentPage -= 1;
+        renderListings();
+        scrollToCategoryPanel();
+      });
+    }
+
+    if (paginationNext) {
+      paginationNext.addEventListener('click', () => {
+        if (currentPage >= totalPages) return;
+        currentPage += 1;
+        renderListings();
+        scrollToCategoryPanel();
+      });
+    }
 
     if (imageModalClose) imageModalClose.addEventListener('click', closeImageModal);
     if (imageModalBackdrop) imageModalBackdrop.addEventListener('click', closeImageModal);
@@ -1055,6 +1887,7 @@ function hideCategoryPanel() {
     document.addEventListener('keydown', handleModalKeydown);
   }
 
+  initializeMembership();
   // 啟動應用程式
   initialize();
 });
