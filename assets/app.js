@@ -65,10 +65,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const FAVORITES_CATEGORY = 'favorites';
   const FAVORITES_STORAGE_PREFIX = 'tikswapFavorites:';
   const REMEMBER_EMAIL_KEY = 'authRememberEmail';
+  const LOGIN_ATTEMPTS_KEY = 'authLoginAttempts';
+  const LOGIN_ATTEMPT_LIMIT = 5;
+  const LOGIN_LOCKOUT_DURATION = 5 * 60 * 1000;
   const LISTINGS_PER_PAGE = 6;
-  const SELECTED_LISTING_KEY = 'selectedListing';
-  const LISTING_CACHE_KEY = 'listingCache';
-  const WINDOW_TRANSFER_KEY = '__tikswapSelectedListing';
   let searchTerms = [];
   const isUuid = value => typeof value === 'string'
     && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
@@ -79,6 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
   let memberModalView = 'login';
   let memberFocusReturnElement = null;
   let memberOriginalOverflow = '';
+  let loginAttemptStore = loadLoginAttemptState();
   let editingListingId = null;
   let editingListingOriginal = null;
   let currentPage = 1;
@@ -314,6 +315,84 @@ document.addEventListener('DOMContentLoaded', () => {
     return '會員';
   };
 
+  function loadLoginAttemptState() {
+    try {
+      const raw = localStorage.getItem(LOGIN_ATTEMPTS_KEY);
+      if (!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (error) {
+      console.warn('無法讀取登入嘗試紀錄', error);
+      return {};
+    }
+  }
+
+  function persistLoginAttemptState() {
+    try {
+      localStorage.setItem(LOGIN_ATTEMPTS_KEY, JSON.stringify(loginAttemptStore));
+    } catch (error) {
+      console.warn('無法儲存登入嘗試紀錄', error);
+    }
+  }
+
+  function normalizeAttemptEmail(value) {
+    return (value || '').toString().trim().toLowerCase();
+  }
+
+  function getLoginLockInfo(email) {
+    const normalized = normalizeAttemptEmail(email);
+    if (!normalized) return { normalized, locked: false };
+    const record = loginAttemptStore[normalized];
+    if (!record) return { normalized, locked: false };
+    if (record.lockedUntil && record.lockedUntil <= Date.now()) {
+      record.lockedUntil = 0;
+      record.count = 0;
+      persistLoginAttemptState();
+      return { normalized, locked: false };
+    }
+    if (record.lockedUntil && record.lockedUntil > Date.now()) {
+      return { normalized, locked: true, lockedUntil: record.lockedUntil };
+    }
+    return { normalized, locked: false };
+  }
+
+  function registerFailedLoginAttempt(email) {
+    const normalized = normalizeAttemptEmail(email);
+    if (!normalized) {
+      return { normalized, locked: false, attemptsRemaining: LOGIN_ATTEMPT_LIMIT };
+    }
+    const now = Date.now();
+    const record = loginAttemptStore[normalized] || { count: 0, lockedUntil: 0 };
+    if (record.lockedUntil && record.lockedUntil <= now) {
+      record.lockedUntil = 0;
+      record.count = 0;
+    }
+    record.count += 1;
+    let locked = false;
+    if (record.count >= LOGIN_ATTEMPT_LIMIT) {
+      record.lockedUntil = now + LOGIN_LOCKOUT_DURATION;
+      record.count = 0;
+      locked = true;
+    }
+    loginAttemptStore[normalized] = record;
+    persistLoginAttemptState();
+    return {
+      normalized,
+      locked,
+      lockedUntil: record.lockedUntil || 0,
+      attemptsRemaining: locked ? 0 : Math.max(LOGIN_ATTEMPT_LIMIT - record.count, 0)
+    };
+  }
+
+  function clearLoginAttempts(email) {
+    const normalized = normalizeAttemptEmail(email);
+    if (!normalized) return;
+    if (loginAttemptStore[normalized]) {
+      delete loginAttemptStore[normalized];
+      persistLoginAttemptState();
+    }
+  }
+
   function loadRememberedEmail() {
     if (!memberLoginForm) return;
     try {
@@ -501,16 +580,34 @@ document.addEventListener('DOMContentLoaded', () => {
       setMemberMessage('請輸入電子郵件與密碼。', { variant: 'error' });
       return;
     }
+    const normalizedEmail = normalizeAttemptEmail(email);
+    const lockInfo = getLoginLockInfo(normalizedEmail);
+    if (lockInfo.locked) {
+      const waitMs = Math.max((lockInfo.lockedUntil || 0) - Date.now(), 0);
+      const waitMinutes = Math.max(1, Math.ceil(waitMs / 60000));
+      setMemberMessage(`登入嘗試過多，請 ${waitMinutes} 分鐘後再試。`, { variant: 'warning' });
+      return;
+    }
     setMemberFormLoading(memberLoginForm, true);
     setMemberMessage('');
     try {
       const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if (error) throw error;
+      clearLoginAttempts(normalizedEmail);
       persistRememberedEmail(remember, email);
       setMemberMessage('登入成功，正在為您更新狀態。', { variant: 'success' });
     } catch (error) {
       console.error('Supabase signIn failed', error);
-      setMemberMessage(error.message || '登入失敗，請稍後再試。', { variant: 'error' });
+      const attemptInfo = registerFailedLoginAttempt(normalizedEmail);
+      let message = error.message || '登入失敗，請稍後再試。';
+      if (attemptInfo.locked) {
+        const waitMs = Math.max((attemptInfo.lockedUntil || 0) - Date.now(), 0);
+        const waitMinutes = Math.max(1, Math.ceil(waitMs / 60000));
+        message = `登入嘗試過多，帳號已暫時鎖定，請 ${waitMinutes} 分鐘後再試。`;
+      } else if (typeof attemptInfo.attemptsRemaining === 'number') {
+        message = `登入失敗（尚可嘗試 ${attemptInfo.attemptsRemaining} 次）`;
+      }
+      setMemberMessage(message, { variant: 'error' });
     } finally {
       setMemberFormLoading(memberLoginForm, false);
     }
@@ -935,100 +1032,13 @@ function hideCategoryPanel() {
     updateCategoryPanelSubtitle();
   }
 
-  function persistSelectedListingPayload(payload) {
-    if (!payload) return;
-    let serialized = '';
-    try {
-      serialized = JSON.stringify(payload);
-    } catch (error) {
-      console.warn('無法序列化刊登資料', error);
+  function navigateToListingDetail(data) {
+    if (!data || !data.id) {
+      showToast('無法開啟此刊登，缺少必要的識別資訊。');
       return;
     }
-    try {
-      localStorage.setItem(SELECTED_LISTING_KEY, serialized);
-    } catch (error) {
-      console.warn('無法快取選取的刊登', error);
-    }
-    try {
-      if (typeof sessionStorage !== 'undefined') {
-        sessionStorage.setItem(SELECTED_LISTING_KEY, serialized);
-      }
-    } catch {
-      /* sessionStorage 失敗時略過 */
-    }
-    if (typeof window !== 'undefined') {
-      try {
-        let transferState = {};
-        if (window.name && window.name.trim()) {
-          try {
-            transferState = JSON.parse(window.name);
-          } catch {
-            transferState = {};
-          }
-        }
-        transferState[WINDOW_TRANSFER_KEY] = serialized;
-        window.name = JSON.stringify(transferState);
-      } catch {
-        try {
-          window.name = serialized;
-        } catch {
-          /* ignore window name assignment failure */
-        }
-      }
-    }
-  }
-
-  function persistListingCache(payload) {
-    if (!payload || !payload.id) return;
-    try {
-      const raw = localStorage.getItem(LISTING_CACHE_KEY) || '{}';
-      const cache = JSON.parse(raw);
-      cache[payload.id] = payload;
-      localStorage.setItem(LISTING_CACHE_KEY, JSON.stringify(cache));
-    } catch (error) {
-      console.warn('無法更新刊登快取', error);
-    }
-  }
-
-  function encodeListingForUrl(payload) {
-    if (!payload) return '';
-    try {
-      const json = JSON.stringify(payload);
-      if (typeof window !== 'undefined' && typeof window.btoa === 'function') {
-        const safeJson = encodeURIComponent(json);
-        const base64 = window.btoa(safeJson)
-          .replace(/\+/g, '-')
-          .replace(/\//g, '_')
-          .replace(/=+$/g, '');
-        return base64;
-      }
-      return encodeURIComponent(json);
-    } catch (error) {
-      console.warn('無法序列化刊登資料供網址使用', error);
-      return '';
-    }
-  }
-
-  function navigateToListingDetail(data) {
-    if (!data) return;
-    const payload = { ...data };
-    if (!payload.__detailBackground) {
-      payload.__detailBackground = getCategoryBackground(payload.category);
-    }
-    payload.__savedAt = Date.now();
-    persistSelectedListingPayload(payload);
-    persistListingCache(payload);
     const url = new URL('detail.html', window.location.href);
-    if (payload.id) {
-      url.searchParams.set('id', payload.id);
-    }
-    const encoded = encodeListingForUrl(payload);
-    if (encoded) {
-      url.searchParams.set('payload', encoded);
-      url.hash = `data=${encoded}`;
-    } else {
-      url.hash = '';
-    }
+    url.searchParams.set('id', data.id);
     window.location.href = url.toString();
   }
 
@@ -1119,7 +1129,7 @@ function hideCategoryPanel() {
 
   const persistListing = async data => {
     if (!isSupabaseEnabled) {
-      return { ...data };
+      throw new Error('Supabase 未設定，無法儲存刊登資料。');
     }
 
     const hasValidId = isUuid(data.id);
@@ -1960,23 +1970,15 @@ function hideCategoryPanel() {
       }
     } catch (error) {
       console.error('Failed to save listing to Supabase', error);
-      upsertListing(data);
-      renderListings();
-      if (!isEditing) {
-        data.id = Date.now().toString();
-      }
-      setActiveCategory('all', { syncSelect: true, syncNav: true });
-      showCategoryPanel();
-      showToast('暫時無法儲存到雲端，資料已存於此頁面。');
-      const target = categoryPanel || listingsContainer.parentElement;
-      if (target && target.scrollIntoView) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      showToast('暫時無法儲存到雲端，請稍後再試。');
     }
   }
 
   async function loadInitialListings() {
-    if (!isSupabaseEnabled) return;
+    if (!isSupabaseEnabled) {
+      showToast('尚未設定 Supabase，無法載入雲端資料。');
+      return;
+    }
     try {
       const remoteListings = await fetchListingsFromStore();
       const existingIds = new Set(listings.map(item => (item.id ? item.id.toString() : '')));

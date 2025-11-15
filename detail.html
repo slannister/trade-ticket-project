@@ -100,7 +100,7 @@
       ) {
         supabaseClient = createClient(window.supabaseConfig.url, window.supabaseConfig.anonKey);
       } else {
-        console.warn('Supabase config is not set. The detail page will rely on 瀏覽器暫存資料。');
+        console.warn('Supabase config is not set. The detail page 無法載入遠端資料。');
       }
 
       window.__supabase = supabaseClient;
