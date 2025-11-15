@@ -1381,6 +1381,12 @@ body[data-theme='light'] .filter-search-tag {
   color: #e4ffee;
 }
 
+.badge-request {
+  border-color: rgba(255, 163, 214, 0.9);
+  background: linear-gradient(135deg, rgba(255, 168, 219, 0.35), rgba(180, 82, 176, 0.52));
+  color: #fff2fa;
+}
+
 .listing-card-body {
   padding: 24px 26px 18px;
   display: flex;
@@ -2319,6 +2325,12 @@ body[data-theme='light'] .badge-swap {
   background: linear-gradient(135deg, rgba(176, 249, 206, 0.8), rgba(76, 209, 149, 0.9));
   color: #0d3c24;
   border-color: rgba(76, 209, 149, 0.75);
+}
+
+body[data-theme='light'] .badge-request {
+  background: linear-gradient(135deg, rgba(255, 204, 233, 0.85), rgba(238, 126, 203, 0.95));
+  color: #571036;
+  border-color: rgba(238, 126, 203, 0.7);
 }
 
 body[data-theme='light'] .listing-card-meta span {

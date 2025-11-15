@@ -550,8 +550,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (badgesContainer) {
       badgesContainer.innerHTML = '';
-      const typeMap = { auction: '出售', transfer: '讓票', swap: '交換' };
-      const typeClassMap = { auction: 'badge-auction', transfer: 'badge-transfer', swap: 'badge-swap' };
+      const typeMap = { auction: '出售', transfer: '讓票', swap: '交換', request: '求票' };
+      const typeClassMap = {
+        auction: 'badge-auction',
+        transfer: 'badge-transfer',
+        swap: 'badge-swap',
+        request: 'badge-request'
+      };
       if (data.type && typeMap[data.type]) {
         const typeBadge = document.createElement('span');
         const typeClass = typeClassMap[data.type] || '';
