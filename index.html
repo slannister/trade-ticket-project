@@ -260,9 +260,14 @@
             <span>電子郵件</span>
             <input autocomplete="email" id="member-login-email" name="email" placeholder="you@example.com" required type="email"/>
           </label>
-          <label class="member-field">
+          <label class="member-field member-field-password">
             <span>密碼</span>
-            <input autocomplete="current-password" id="member-login-password" minlength="6" name="password" placeholder="至少 6 碼" required type="password"/>
+            <div class="member-input-wrapper" data-password-field>
+              <input autocomplete="current-password" id="member-login-password" minlength="6" name="password" placeholder="至少 6 碼" required type="password"/>
+              <button class="member-password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="顯示密碼">
+                <span aria-hidden="true"></span>
+              </button>
+            </div>
           </label>
           <label class="member-checkbox">
             <input name="remember" type="checkbox"/>
@@ -283,13 +288,23 @@
             <span>電子郵件</span>
             <input autocomplete="email" id="member-signup-email" name="email" placeholder="you@example.com" required type="email"/>
           </label>
-          <label class="member-field">
+          <label class="member-field member-field-password">
             <span>密碼</span>
-            <input autocomplete="new-password" id="member-signup-password" minlength="6" name="password" placeholder="至少 6 碼" required type="password"/>
+            <div class="member-input-wrapper" data-password-field>
+              <input autocomplete="new-password" id="member-signup-password" minlength="6" name="password" placeholder="至少 6 碼" required type="password"/>
+              <button class="member-password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="顯示密碼">
+                <span aria-hidden="true"></span>
+              </button>
+            </div>
           </label>
-          <label class="member-field">
+          <label class="member-field member-field-password">
             <span>確認密碼</span>
-            <input autocomplete="new-password" id="member-signup-confirm" minlength="6" name="confirmPassword" placeholder="再次輸入" required type="password"/>
+            <div class="member-input-wrapper" data-password-field>
+              <input autocomplete="new-password" id="member-signup-confirm" minlength="6" name="confirmPassword" placeholder="再次輸入" required type="password"/>
+              <button class="member-password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="顯示密碼">
+                <span aria-hidden="true"></span>
+              </button>
+            </div>
           </label>
           <button class="member-primary" type="submit">建立會員</button>
         </form>
@@ -305,6 +320,31 @@
           <button class="member-primary" type="submit">寄送重設連結</button>
         </form>
         <p class="member-footnote">已經記起密碼？ <button class="member-link" data-member-route="login" type="button">返回登入</button></p>
+      </section>
+      <section class="member-view" data-member-view="recover" hidden>
+        <h3>設定新密碼</h3>
+        <form class="member-form" id="member-update-password-form">
+          <label class="member-field member-field-password">
+            <span>新的密碼</span>
+            <div class="member-input-wrapper" data-password-field>
+              <input autocomplete="new-password" name="newPassword" placeholder="至少 6 碼" minlength="6" required type="password"/>
+              <button class="member-password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="顯示密碼">
+                <span aria-hidden="true"></span>
+              </button>
+            </div>
+          </label>
+          <label class="member-field member-field-password">
+            <span>確認密碼</span>
+            <div class="member-input-wrapper" data-password-field>
+              <input autocomplete="new-password" name="confirmNewPassword" placeholder="再次輸入" minlength="6" required type="password"/>
+              <button class="member-password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="顯示密碼">
+                <span aria-hidden="true"></span>
+              </button>
+            </div>
+          </label>
+          <button class="member-primary" type="submit">更新密碼</button>
+        </form>
+        <p class="member-footnote">完成後可直接 <button class="member-link" data-member-route="login" type="button">返回登入</button></p>
       </section>
       <div aria-live="polite" class="member-message" data-member-message hidden></div>
     </div>

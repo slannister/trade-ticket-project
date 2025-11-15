@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const accountMenu = document.querySelector('[data-account-menu]');
   const accountLogoutButton = document.querySelector('[data-account-logout]');
   const memberModal = document.getElementById('member-modal');
+  const memberModalBody = memberModal ? memberModal.querySelector('.member-modal-body') : null;
   const memberTabs = memberModal ? Array.from(memberModal.querySelectorAll('[data-member-tab]')) : [];
   const memberRouteButtons = memberModal ? Array.from(memberModal.querySelectorAll('[data-member-route]')) : [];
   const memberViews = memberModal ? Array.from(memberModal.querySelectorAll('[data-member-view]')) : [];
@@ -36,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const memberLoginForm = document.getElementById('member-login-form');
   const memberSignupForm = document.getElementById('member-signup-form');
   const memberResetForm = document.getElementById('member-reset-form');
+  let memberUpdateForm = document.getElementById('member-update-password-form');
   const categoryPanel = document.getElementById('category-panel');
   const categoryPanelTitle = document.getElementById('category-panel-title');
   const categoryPanelSubtitle = document.getElementById('category-panel-subtitle');
@@ -78,6 +80,69 @@ document.addEventListener('DOMContentLoaded', () => {
   let editingListingOriginal = null;
   let currentPage = 1;
   let totalPages = 1;
+
+  function setupPasswordToggles(scope = document) {
+    if (!scope) return;
+    const toggles = scope.querySelectorAll('[data-password-toggle]');
+    toggles.forEach(toggle => {
+      if (toggle.dataset.passwordToggleBound === 'true') return;
+      toggle.dataset.passwordToggleBound = 'true';
+      toggle.addEventListener('click', () => {
+        const wrapper = toggle.closest('[data-password-field]');
+        const input = wrapper ? wrapper.querySelector('input') : null;
+        if (!input) return;
+        const isVisible = input.type === 'text';
+        input.type = isVisible ? 'password' : 'text';
+        toggle.setAttribute('aria-pressed', (!isVisible).toString());
+        toggle.setAttribute('aria-label', isVisible ? '顯示密碼' : '隱藏密碼');
+      });
+    });
+  }
+
+  function ensureRecoverViewExists() {
+    if (memberUpdateForm || !memberModalBody) return;
+    const recoverSection = document.createElement('section');
+    recoverSection.className = 'member-view';
+    recoverSection.dataset.memberView = 'recover';
+    recoverSection.hidden = true;
+    recoverSection.innerHTML = `
+      <h3>設定新密碼</h3>
+      <form class="member-form" id="member-update-password-form">
+        <label class="member-field member-field-password">
+          <span>新的密碼</span>
+          <div class="member-input-wrapper" data-password-field>
+            <input autocomplete="new-password" name="newPassword" placeholder="至少 6 碼" minlength="6" required type="password">
+            <button class="member-password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="顯示密碼">
+              <span aria-hidden="true"></span>
+            </button>
+          </div>
+        </label>
+        <label class="member-field member-field-password">
+          <span>確認密碼</span>
+          <div class="member-input-wrapper" data-password-field>
+            <input autocomplete="new-password" name="confirmNewPassword" placeholder="再次輸入" minlength="6" required type="password">
+            <button class="member-password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="顯示密碼">
+              <span aria-hidden="true"></span>
+            </button>
+          </div>
+        </label>
+        <button class="member-primary" type="submit">更新密碼</button>
+      </form>
+      <p class="member-footnote">完成後可直接 <button class="member-link" data-member-route="login" type="button">返回登入</button></p>
+    `;
+    if (memberMessage) {
+      memberModalBody.insertBefore(recoverSection, memberMessage);
+    } else {
+      memberModalBody.appendChild(recoverSection);
+    }
+    memberViews.push(recoverSection);
+    memberRouteButtons.push(...recoverSection.querySelectorAll('[data-member-route]'));
+    memberUpdateForm = recoverSection.querySelector('#member-update-password-form');
+    setupPasswordToggles(recoverSection);
+  }
+
+  ensureRecoverViewExists();
+  setupPasswordToggles();
 
   const formatDeliveryMethod = value => {
     if (!value) return '—';
@@ -488,14 +553,15 @@ document.addEventListener('DOMContentLoaded', () => {
   async function handleMemberReset(event) {
     event.preventDefault();
     if (!memberResetForm) return;
-    if (!isSupabaseEnabled) {
-      setMemberMessage('尚未設定 Supabase 連線，無法寄送重設連結。', { variant: 'error' });
-      return;
-    }
     const formData = new FormData(memberResetForm);
     const email = (formData.get('email') || '').toString().trim();
     if (!email) {
       setMemberMessage('請輸入電子郵件。', { variant: 'error' });
+      return;
+    }
+    if (!isSupabaseEnabled) {
+      setMemberMessage('示範模式：已記錄您的重設請求，請留意信箱。', { variant: 'info' });
+      memberResetForm.reset();
       return;
     }
     setMemberFormLoading(memberResetForm, true);
@@ -511,6 +577,44 @@ document.addEventListener('DOMContentLoaded', () => {
       setMemberMessage(error.message || '寄送失敗，請稍後再試。', { variant: 'error' });
     } finally {
       setMemberFormLoading(memberResetForm, false);
+    }
+  }
+
+  async function handleMemberPasswordUpdate(event) {
+    event.preventDefault();
+    if (!memberUpdateForm) return;
+    if (!isSupabaseEnabled) {
+      setMemberMessage('尚未設定 Supabase 連線，無法更新密碼。', { variant: 'error' });
+      return;
+    }
+    const formData = new FormData(memberUpdateForm);
+    const newPassword = (formData.get('newPassword') || '').toString();
+    const confirmNewPassword = (formData.get('confirmNewPassword') || '').toString();
+    if (!newPassword || !confirmNewPassword) {
+      setMemberMessage('請輸入並確認新密碼。', { variant: 'error' });
+      return;
+    }
+    if (newPassword.length < 6) {
+      setMemberMessage('新密碼至少需要 6 碼。', { variant: 'error' });
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      setMemberMessage('兩次輸入的密碼不一致。', { variant: 'error' });
+      return;
+    }
+    setMemberFormLoading(memberUpdateForm, true);
+    setMemberMessage('正在更新密碼…');
+    try {
+      const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setMemberMessage('密碼已更新，請重新登入。', { variant: 'success' });
+      memberUpdateForm.reset();
+      setMemberView('login');
+    } catch (error) {
+      console.error('Supabase updateUser failed', error);
+      setMemberMessage(error.message || '更新密碼失敗，請稍後再試。', { variant: 'error' });
+    } finally {
+      setMemberFormLoading(memberUpdateForm, false);
     }
   }
 
@@ -582,6 +686,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (memberLoginForm) memberLoginForm.addEventListener('submit', handleMemberLogin);
     if (memberSignupForm) memberSignupForm.addEventListener('submit', handleMemberSignup);
     if (memberResetForm) memberResetForm.addEventListener('submit', handleMemberReset);
+    if (memberUpdateForm) memberUpdateForm.addEventListener('submit', handleMemberPasswordUpdate);
     memberLogoutButtons.forEach(button => button.addEventListener('click', handleMemberLogout));
     if (accountLogoutButton) {
       accountLogoutButton.addEventListener('click', () => {
@@ -627,7 +732,10 @@ document.addEventListener('DOMContentLoaded', () => {
       updateMemberUI();
       loadFavoritesForSession();
       renderListings();
-      if (event === 'SIGNED_IN') {
+      if (event === 'PASSWORD_RECOVERY') {
+        openMemberModal('recover');
+        setMemberMessage('請輸入新的密碼以完成重設。', { variant: 'warning' });
+      } else if (event === 'SIGNED_IN') {
         const user = getSessionUser();
         showToast(`歡迎回來，${getDisplayNameFromUser(user)}！`);
         closeMemberModal();
