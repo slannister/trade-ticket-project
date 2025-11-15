@@ -14,6 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const filterType = document.getElementById('filter-type');
   const filterCategory = document.getElementById('filter-category');
   const filterSearch = document.getElementById('filter-search');
+  const filterSearchAdd = document.getElementById('filter-search-add');
+  const filterSearchTags = document.getElementById('filter-search-tags');
   const filterQuantityMin = document.getElementById('filter-quantity-min');
   const filterDelivery = document.getElementById('filter-delivery');
   const filterCreatedStart = document.getElementById('filter-created-start');
@@ -67,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const SELECTED_LISTING_KEY = 'selectedListing';
   const LISTING_CACHE_KEY = 'listingCache';
   const WINDOW_TRANSFER_KEY = '__tikswapSelectedListing';
+  let searchTerms = [];
   const isUuid = value => typeof value === 'string'
     && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
   let modalState = { images: [], index: 0 };
@@ -1634,9 +1637,88 @@ function hideCategoryPanel() {
     }
   }
 
+  function sanitizeSearchLabel(value) {
+    if (typeof value !== 'string') return '';
+    return value.replace(/\s+/g, ' ').trim();
+  }
+
+  function normalizeSearchValue(value) {
+    const label = sanitizeSearchLabel(value);
+    return label ? label.toLowerCase() : '';
+  }
+
+  function renderSearchTags() {
+    if (!filterSearchTags) return;
+    filterSearchTags.innerHTML = '';
+    searchTerms.forEach(term => {
+      const tag = document.createElement('span');
+      tag.className = 'filter-search-tag';
+      const label = document.createElement('span');
+      label.className = 'filter-search-tag-label';
+      label.textContent = term.label;
+      const removeButton = document.createElement('button');
+      removeButton.type = 'button';
+      removeButton.className = 'filter-search-tag-remove';
+      removeButton.dataset.removeSearchTerm = term.value;
+      removeButton.setAttribute('aria-label', `移除搜尋條件 ${term.label}`);
+      removeButton.textContent = '×';
+      tag.append(label, removeButton);
+      filterSearchTags.appendChild(tag);
+    });
+  }
+
+  function addSearchTerm(rawValue) {
+    const label = sanitizeSearchLabel(rawValue);
+    if (!label) return false;
+    const normalized = label.toLowerCase();
+    if (searchTerms.some(term => term.value === normalized)) return false;
+    searchTerms = [...searchTerms, { label, value: normalized }];
+    renderSearchTags();
+    return true;
+  }
+
+  function removeSearchTerm(rawValue) {
+    const normalized = normalizeSearchValue(rawValue);
+    if (!normalized) return false;
+    const nextTerms = searchTerms.filter(term => term.value !== normalized);
+    if (nextTerms.length === searchTerms.length) return false;
+    searchTerms = nextTerms;
+    renderSearchTags();
+    return true;
+  }
+
+  function clearSearchTerms(options = {}) {
+    if (!searchTerms.length) return false;
+    searchTerms = [];
+    renderSearchTags();
+    if (!options.skipRender) {
+      renderListings({ resetPage: true });
+    }
+    return true;
+  }
+
+  function addSearchTermFromInput() {
+    if (!filterSearch) return false;
+    const added = addSearchTerm(filterSearch.value || '');
+    if (added) {
+      filterSearch.value = '';
+    }
+    return added;
+  }
+
+  function getActiveSearchTerms() {
+    const inline = normalizeSearchValue(filterSearch ? filterSearch.value : '');
+    const normalizedTerms = searchTerms.map(term => term.value);
+    if (inline) {
+      normalizedTerms.push(inline);
+    }
+    return Array.from(new Set(normalizedTerms.filter(Boolean)));
+  }
+
   function resetFilters() {
     if (filterType) filterType.value = 'all';
     if (filterSearch) filterSearch.value = '';
+    clearSearchTerms({ skipRender: true });
     if (filterQuantityMin) filterQuantityMin.value = '';
     if (filterDelivery) filterDelivery.value = 'all';
     if (filterCreatedStart) filterCreatedStart.value = '';
@@ -1661,7 +1743,7 @@ function hideCategoryPanel() {
       : navCategory;
     const sessionUser = getSessionUser();
     const sessionUserId = sessionUser ? sessionUser.id : null;
-    const searchTerm = filterSearch && filterSearch.value ? filterSearch.value.toLowerCase() : '';
+    const activeSearchTerms = getActiveSearchTerms();
     const quantityMinValue = filterQuantityMin && filterQuantityMin.value !== ''
       ? Number(filterQuantityMin.value)
       : Number.NaN;
@@ -1699,11 +1781,13 @@ function hideCategoryPanel() {
       } else {
         categoryMatch = categoryValue === 'all' || listing.category === categoryValue;
       }
-      const searchMatch = !searchTerm ||
-        lowerTitle.includes(searchTerm) ||
-        lowerDescription.includes(searchTerm) ||
-        lowerSellerName.includes(searchTerm) ||
-        lowerLocation.includes(searchTerm);
+      const searchMatch = !activeSearchTerms.length ||
+        activeSearchTerms.every(term =>
+          lowerTitle.includes(term) ||
+          lowerDescription.includes(term) ||
+          lowerSellerName.includes(term) ||
+          lowerLocation.includes(term)
+        );
       const rawQuantity = listing.quantity ?? null;
       const numericQuantity = typeof rawQuantity === 'number' ? rawQuantity : Number(rawQuantity);
       const quantityMatch = !hasQuantityFilter || (!Number.isNaN(numericQuantity) && numericQuantity >= quantityMinValue);
@@ -1913,6 +1997,7 @@ function hideCategoryPanel() {
    * 初始化應用程式
    */
   function initialize() {
+    renderSearchTags();
     const initialCategory = filterCategory ? (filterCategory.value || 'all') : 'all';
     ensureDefaultDeadlineTime();
     setActiveCategory(initialCategory, { syncSelect: true, syncNav: true });
@@ -1933,7 +2018,33 @@ function hideCategoryPanel() {
     }
     const rerenderWithReset = () => renderListings({ resetPage: true });
     if (filterType) filterType.addEventListener('change', rerenderWithReset);
-    if (filterSearch) filterSearch.addEventListener('input', rerenderWithReset);
+    if (filterSearch) {
+      filterSearch.addEventListener('input', rerenderWithReset);
+      filterSearch.addEventListener('keydown', event => {
+        if (event.key === 'Enter') {
+          event.preventDefault();
+          if (addSearchTermFromInput()) {
+            rerenderWithReset();
+          }
+        }
+      });
+    }
+    if (filterSearchAdd) {
+      filterSearchAdd.addEventListener('click', () => {
+        if (addSearchTermFromInput()) {
+          rerenderWithReset();
+        }
+      });
+    }
+    if (filterSearchTags) {
+      filterSearchTags.addEventListener('click', event => {
+        const removeButton = event.target.closest('.filter-search-tag-remove');
+        if (!removeButton) return;
+        if (removeSearchTerm(removeButton.dataset.removeSearchTerm || '')) {
+          rerenderWithReset();
+        }
+      });
+    }
     if (filterQuantityMin) filterQuantityMin.addEventListener('input', rerenderWithReset);
     if (filterDelivery) filterDelivery.addEventListener('change', rerenderWithReset);
     if (filterCreatedStart) filterCreatedStart.addEventListener('change', rerenderWithReset);
