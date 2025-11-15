@@ -1,4 +1,4 @@
-const TYPE_LABELS = { auction: '出價', transfer: '讓票', swap: '交換' };
+const TYPE_LABELS = { auction: '出售', transfer: '讓票', swap: '交換' };
 const supabaseClient = window.__supabase || null;
 const listingsTableName = 'listings';
 const isSupabaseEnabled = Boolean(supabaseClient);
