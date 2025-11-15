@@ -188,6 +188,17 @@ body::before {
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.15);
 }
 
+body[data-theme='light'] .sidebar-nav button .nav-indicator {
+  background: rgba(91, 140, 255, 0.35);
+  box-shadow: inset 0 0 0 1px rgba(91, 140, 255, 0.4);
+}
+
+body[data-theme='light'] .sidebar-nav button.is-active .nav-indicator,
+body[data-theme='light'] .sidebar-nav button:hover .nav-indicator {
+  background: rgba(91, 140, 255, 0.85);
+  box-shadow: inset 0 0 0 1px rgba(49, 79, 150, 0.4);
+}
+
 .sidebar-nav button.is-active,
 .sidebar-nav button:hover {
   color: var(--text);
