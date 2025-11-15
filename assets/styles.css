@@ -1400,6 +1400,8 @@ body[data-theme='light'] .filter-search-tag {
   display: flex;
   align-items: center;
   gap: 0.35rem;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .listing-card-favorite {
@@ -1435,6 +1437,12 @@ body[data-theme='light'] .filter-search-tag {
   font-size: 1.26rem;
   font-weight: 600;
   letter-spacing: -0.012em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 3.2rem;
 }
 
 .listing-card-id {
@@ -1545,6 +1553,9 @@ body[data-theme='light'] .filter-search-tag {
 
 .listing-card-owner-menu {
   position: relative;
+  margin-left: auto;
+  margin-right: 3px;
+  flex: 0 0 auto;
 }
 
 .owner-menu-trigger {
