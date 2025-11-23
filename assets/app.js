@@ -1,7 +1,11 @@
+import { renderMessages } from './messages.js';
+
 document.addEventListener('DOMContentLoaded', () => {
   // DOM 元素
   const listingForm = document.getElementById('listing-form');
   const listingFormPanel = document.getElementById('listing-form-panel');
+  const messagesPanel = document.getElementById('messages-panel');
+  const messagesContainer = document.getElementById('messages-container');
   const listingsContainer = document.getElementById('listings-container');
   const listingTemplate = document.getElementById('listing-template');
   const listingTimeInput = document.getElementById('listing-time');
@@ -63,6 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const DEFAULT_DEADLINE_TIME_ISO = '23:59:59';
   const MY_LISTINGS_CATEGORY = 'my-listings';
   const FAVORITES_CATEGORY = 'favorites';
+  const MESSAGES_CATEGORY = 'messages';
   const FAVORITES_STORAGE_PREFIX = 'tikswapFavorites:';
   const REMEMBER_EMAIL_KEY = 'authRememberEmail';
   const LOGIN_ATTEMPTS_KEY = 'authLoginAttempts';
@@ -847,7 +852,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   function setActiveCategory(value, { syncSelect = false, syncNav = false } = {}) {
     const normalized = value && value !== '' ? value : 'all';
-    const requiresAuth = normalized === MY_LISTINGS_CATEGORY || normalized === FAVORITES_CATEGORY;
+    const requiresAuth = normalized === MY_LISTINGS_CATEGORY || normalized === FAVORITES_CATEGORY || normalized === MESSAGES_CATEGORY;
     if (requiresAuth && !getSessionUser()) {
       activeCategory = 'all';
       resetPagination();
@@ -878,12 +883,35 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     updateCategoryPanelSubtitle();
+
+    if (normalized === MESSAGES_CATEGORY) {
+      showMessagesPanel();
+    } else {
+      showCategoryPanel();
+    }
   }
 
-function hideCategoryPanel() {
+  function hideCategoryPanel() {
     if (!categoryPanel) return;
     categoryPanel.classList.add('is-hidden');
     categoryPanel.hidden = true;
+  }
+
+  function hideMessagesPanel() {
+    if (!messagesPanel) return;
+    messagesPanel.classList.add('is-hidden');
+    messagesPanel.hidden = true;
+  }
+
+  function showMessagesPanel() {
+    if (!messagesPanel) return;
+    hideCategoryPanel();
+    hideListingForm();
+    messagesPanel.hidden = false;
+    messagesPanel.classList.remove('is-hidden');
+    if (messagesContainer) {
+      renderMessages(messagesContainer);
+    }
   }
 
   function hideListingForm() {
@@ -896,6 +924,7 @@ function hideCategoryPanel() {
     if (!listingFormPanel) return;
     listingFormPanel.classList.remove('is-hidden');
     listingFormPanel.hidden = false;
+    hideMessagesPanel();
   }
 
   function setFormMode(mode = 'create') {
@@ -1029,6 +1058,7 @@ function hideCategoryPanel() {
     categoryPanel.hidden = false;
     categoryPanel.classList.remove('is-hidden');
     hideListingForm();
+    hideMessagesPanel();
     updateCategoryPanelSubtitle();
   }
 
@@ -1352,7 +1382,7 @@ function hideCategoryPanel() {
       });
     }
 
-    
+
     const currentUser = getSessionUser();
     const isMyListingsView = activeCategory === MY_LISTINGS_CATEGORY;
     const isOwner = Boolean(currentUser && data.ownerId && currentUser.id === data.ownerId && isMyListingsView);
@@ -1590,7 +1620,7 @@ function hideCategoryPanel() {
       }
     }
 
-        if (card && media && !imageList.length) {
+    if (card && media && !imageList.length) {
       card.classList.add('is-placeholder');
     }
 
@@ -1930,6 +1960,11 @@ function hideCategoryPanel() {
     const sessionUser = getSessionUser();
     data.ownerId = sessionUser ? sessionUser.id : (editingListingOriginal?.ownerId || null);
 
+    // Auto-fill seller contact if missing (e.g. hidden field)
+    if (!data.sellerContact && sessionUser && sessionUser.email) {
+      data.sellerContact = sessionUser.email;
+    }
+
     data.images = [];
 
     if (imageFiles.length && isStorageEnabled) {
@@ -2082,9 +2117,10 @@ function hideCategoryPanel() {
           return;
         }
         setActiveCategory(categoryValue, { syncSelect: true, syncNav: true });
-        showCategoryPanel();
-        renderListings();
-        scrollToCategoryPanel();
+        if (categoryValue !== MESSAGES_CATEGORY) {
+          renderListings();
+          scrollToCategoryPanel();
+        }
       });
     });
 

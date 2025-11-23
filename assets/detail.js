@@ -249,6 +249,63 @@ const handleModalKeydown = event => {
   }
 };
 
+const showToast = message => {
+  const toastRoot = document.getElementById('toast-root');
+  if (!toastRoot) return;
+
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.textContent = message;
+  toastRoot.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add('toast-visible');
+  }, 10);
+
+  setTimeout(() => {
+    toast.classList.remove('toast-visible');
+    toast.addEventListener('transitionend', () => toast.remove());
+  }, 3000);
+};
+
+let inquiryModalRoot = null;
+let inquiryModalBackdrop = null;
+let inquiryModalClose = null;
+let inquiryForm = null;
+
+const initInquiryModal = () => {
+  inquiryModalRoot = document.getElementById('inquiry-modal');
+  inquiryModalBackdrop = inquiryModalRoot ? inquiryModalRoot.querySelector('.inquiry-modal-backdrop') : null;
+  inquiryModalClose = inquiryModalRoot ? inquiryModalRoot.querySelector('.inquiry-modal-close') : null;
+  inquiryForm = document.getElementById('inquiry-form');
+
+  if (inquiryModalClose) inquiryModalClose.addEventListener('click', closeInquiryModal);
+  if (inquiryModalBackdrop) inquiryModalBackdrop.addEventListener('click', closeInquiryModal);
+};
+
+const openInquiryModal = () => {
+  console.log('Opening inquiry modal...', inquiryModalRoot);
+  if (!inquiryModalRoot) {
+    console.error('Inquiry modal root not found!');
+    return;
+  }
+  inquiryModalRoot.classList.add('is-visible');
+  inquiryModalRoot.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+  const textarea = inquiryForm ? inquiryForm.querySelector('textarea') : null;
+  if (textarea) textarea.focus();
+};
+
+const closeInquiryModal = () => {
+  if (!inquiryModalRoot) return;
+  inquiryModalRoot.classList.remove('is-visible');
+  inquiryModalRoot.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+  if (inquiryForm) inquiryForm.reset();
+};
+
+
+
 const renderListing = (listing, root) => {
   const titleEl = root.querySelector('[data-title]');
   const descriptionEl = root.querySelector('[data-description]');
@@ -288,10 +345,24 @@ const renderListing = (listing, root) => {
     priceEl.textContent = '面議';
   }
 
-  const contactParts = [];
-  if (listing.sellerName) contactParts.push(listing.sellerName);
-  if (listing.sellerContact) contactParts.push(listing.sellerContact);
-  contactEl.textContent = contactParts.length ? contactParts.join(' / ') : '尚未提供聯絡資訊';
+  contactEl.innerHTML = '';
+  if (listing.sellerName) {
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = listing.sellerName;
+    nameSpan.style.marginRight = '12px';
+    contactEl.appendChild(nameSpan);
+  }
+
+  // Always show inquiry button if Supabase is enabled OR if there is a contact method
+  if (isSupabaseEnabled || listing.sellerContact) {
+    const inquiryBtn = document.createElement('button');
+    inquiryBtn.className = 'detail-action-btn';
+    inquiryBtn.textContent = '我有興趣';
+    inquiryBtn.addEventListener('click', () => {
+      openInquiryModal();
+    });
+    contactEl.appendChild(inquiryBtn);
+  }
 
   tagsEl.innerHTML = '';
   if (listing.type) {
@@ -336,7 +407,7 @@ const renderListing = (listing, root) => {
     });
   };
 
-  let scrollToIndex = () => {};
+  let scrollToIndex = () => { };
 
   if (mediaSlider && mediaTrack) {
     if (cleanupSliderResize) {
@@ -506,6 +577,7 @@ const renderListing = (listing, root) => {
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
+  initInquiryModal();
   const root = document.querySelector('[data-detail-root]');
   const emptyState = document.querySelector('[data-empty]');
   if (!root) return;
@@ -556,4 +628,63 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (imageModalPrev) imageModalPrev.addEventListener('click', () => changeModalImage(-1));
   if (imageModalNext) imageModalNext.addEventListener('click', () => changeModalImage(1));
   document.addEventListener('keydown', handleModalKeydown);
+
+  if (inquiryForm) {
+    inquiryForm.addEventListener('submit', async event => {
+      event.preventDefault();
+      const message = inquiryForm.message.value.trim();
+      if (!message) return;
+
+      const submitBtn = inquiryForm.querySelector('button[type="submit"]');
+      const originalBtnText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = '傳送中...';
+
+      try {
+        // 1. Save to Supabase (Real)
+        if (isSupabaseEnabled) {
+
+          // Get current user
+          const { data: { session } } = await supabaseClient.auth.getSession();
+          const user = session?.user;
+          const senderContact = user ? (user.email || '會員') : '訪客';
+
+          const { error } = await supabaseClient
+            .from('inquiries')
+            .insert({
+              listing_id: listing.id,
+              listing_title: listing.title,
+              sender_contact: senderContact,
+              message: message
+            });
+
+          if (error) {
+            console.error('Supabase 儲存失敗：', error);
+            throw error;
+          }
+        } else {
+          // Fallback for local dev without Supabase
+          const inquiries = JSON.parse(localStorage.getItem('my_inquiries') || '[]');
+          inquiries.push({
+            listingId: listing.id,
+            listingTitle: listing.title,
+            message,
+            sentAt: new Date().toISOString()
+          });
+          localStorage.setItem('my_inquiries', JSON.stringify(inquiries));
+        }
+
+        // 2. Mailto (Real) - Keep this as a parallel notification channel
+        showToast('訊息已送出！賣家登入後即可看到您的留言。');
+        closeInquiryModal();
+        inquiryForm.reset();
+      } catch (error) {
+        console.error('Error sending inquiry:', error);
+        showToast('訊息傳送失敗，請稍後再試。');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
+      }
+    });
+  }
 });

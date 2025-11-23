@@ -1,377 +1,465 @@
 <!DOCTYPE html>
 
 <html lang="zh-Hant">
+
 <head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>票券交易交流站</title>
-<link href="./assets/styles.css" rel="stylesheet"/>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>票券交易交流站</title>
+  <link href="./assets/styles.css" rel="stylesheet" />
 </head>
+
 <body data-theme="dark">
-<div class="app-layout">
-<aside class="app-sidebar">
-<div class="sidebar-brand">
-<h1>TikSwap</h1>
-</div>
-<div class="sidebar-actions">
-<button class="sidebar-action" data-scroll-target="#listing-form-panel" type="button">+ 建立刊登</button>
-</div>
-  <nav aria-label="票券分類" class="sidebar-nav">
-    <button aria-pressed="true" class="is-active" data-category="all" type="button">
-      <span aria-hidden="true" class="nav-indicator"></span>
-      <span>全部票券</span>
-    </button>
-<button aria-pressed="false" data-category="演唱會" type="button">
-<span aria-hidden="true" class="nav-indicator"></span>
-<span>演唱會</span>
-</button>
-<button aria-pressed="false" data-category="體育賽事" type="button">
-<span aria-hidden="true" class="nav-indicator"></span>
-<span>體育賽事</span>
-</button>
-<button aria-pressed="false" data-category="戲劇舞台" type="button">
-<span aria-hidden="true" class="nav-indicator"></span>
-<span>戲劇舞台</span>
-</button>
-<button aria-pressed="false" data-category="綜藝活動" type="button">
-<span aria-hidden="true" class="nav-indicator"></span>
-<span>綜藝活動</span>
-</button>
-<button aria-pressed="false" data-category="展覽 / 市集" type="button">
-<span aria-hidden="true" class="nav-indicator"></span>
-<span>展覽 / 市集</span>
-</button>
-    <button aria-pressed="false" data-category="收藏品 / 周邊" type="button">
-      <span aria-hidden="true" class="nav-indicator"></span>
-      <span>收藏品 / 周邊</span>
-    </button>
-    <button aria-pressed="false" data-category="其他" type="button">
-      <span aria-hidden="true" class="nav-indicator"></span>
-      <span>其他類別</span>
-    </button>
-    <div class="sidebar-divider" role="separator" aria-hidden="true"></div>
-    <p class="sidebar-personal-label">會員空間</p>
-    <button aria-pressed="false" class="sidebar-personal" data-category="my-listings" type="button">
-      <span aria-hidden="true" class="nav-indicator"></span>
-      <span>我的刊登</span>
-    </button>
-    <button aria-pressed="false" class="sidebar-personal" data-category="favorites" type="button">
-      <span aria-hidden="true" class="nav-indicator"></span>
-      <span>我的最愛</span>
-    </button>
-  </nav>
-<div class="sidebar-footer">重新發現熱門票券與收藏品</div>
-</aside>
-<div class="app-main">
-<header class="app-topbar">
-  <div class="topbar-actions">
-    <button class="ghost-button theme-toggle" id="theme-toggle" type="button" aria-label="切換為亮色模式"></button>
-    <div class="account-control" data-account-control>
-      <button class="ghost-button login-button member-trigger" type="button" data-member-trigger data-member-state="signed-out" data-account-trigger>登入 / 註冊</button>
-      <div class="account-menu" data-account-menu hidden>
-        <button class="account-menu-item" type="button" data-account-logout>會員登出</button>
+  <div class="app-layout">
+    <aside class="app-sidebar">
+      <div class="sidebar-brand">
+        <h1>TikSwap</h1>
       </div>
-    </div>
-  </div>
-</header>
-<div class="app-content">
-<main class="app-shell">
-<section class="panel listing-form-panel is-hidden" hidden="" id="listing-form-panel">
-<header class="panel-heading">
-<h2>建立刊登</h2>
-<p class="panel-subtitle">填寫票券資訊、上傳圖片並提交，讓買家立即找到你。</p>
-</header>
-<form class="form-grid" id="listing-form">
-<div class="field-group span-2">
-<div class="field">
-<label for="listing-title">刊登標題</label>
-<input id="listing-title" name="title" placeholder="例如：Taylor Swift VIP席位" required=""/>
-</div>
-<div class="field field-quantity">
-<label for="listing-quantity">數量</label>
-<input id="listing-quantity" min="1" name="quantity" type="number" value="1"/>
-</div>
-</div>
-<div class="field">
-<label for="listing-type">刊登類型</label>
-<select id="listing-type" name="type" required="">
-<option value="">請選擇</option>
-<option value="auction">出售</option>
-<option value="transfer">讓票</option>
-<option value="swap">交換</option>
-<option value="request">求票</option>
-</select>
-</div>
-<div class="field">
-<label for="listing-category">票券類型</label>
-<select id="listing-category" name="category">
-<option value="">請選擇</option>
-<option value="演唱會">演唱會</option>
-<option value="體育賽事">體育賽事</option>
-<option value="戲劇舞台">戲劇舞台</option>
-<option value="綜藝活動">綜藝活動</option>
-<option value="展覽 / 市集">展覽 / 市集</option>
-<option value="收藏品 / 周邊">收藏品 / 周邊</option>
-<option value="其他">其他（請於詳細資訊補充）</option>
-</select>
-</div>
-<div class="field">
-<label for="buy-now">商品價格（選填）</label>
-<input id="buy-now" min="0" name="buyNow" placeholder="例如：2200" step="1" type="number"/>
-</div>
-<div class="field">
-</div>
-<div class="field">
-<label for="delivery-method">交付方式</label>
-<select id="delivery-method" name="deliveryMethod" required="">
-<option value="">請選擇</option>
-<option value="meetup">面交</option>
-<option value="shipping">寄件</option>
-</select>
-</div>
-<div class="field">
-<label for="listing-urgency">急迫程度</label>
-<select id="listing-urgency" name="urgency">
-<option value="normal">一般</option>
-<option value="urgent">超急</option>
-</select>
-</div>
-<div class="field span-2 deadline-field">
-<div class="deadline-inputs">
-<div class="deadline-control">
-<label class="deadline-control-label" for="listing-date">截止日期</label>
-<input class="deadline-input" id="listing-date" name="expiresDate" type="date"/>
-</div>
-<div class="deadline-control">
-<label class="deadline-control-label" for="listing-time">截止時間</label>
-<input class="deadline-input" id="listing-time" name="expiresTime" step="60" type="time"/>
-</div>
-</div>
-</div>
-<div class="field">
-<label for="listing-location">交易地點</label>
-<input id="listing-location" name="location"/>
-</div>
-<div class="field">
-<label for="swap-lookfor">交換偏好（若刊登類型為交換）</label>
-<input id="swap-lookfor" name="swapPreferences"/>
-</div>
-<div class="field span-2">
-<label for="listing-description">其他資訊（選填）</label>
-<textarea id="listing-description" name="description" placeholder="座位資訊" rows="4"></textarea>
-<label class="file-label" for="listing-images">上傳圖片（最多 6 張）</label>
-<input accept="image/*" id="listing-images" multiple="" name="listing-images" type="file"/>
-</div>
-<div class="field">
-<label for="seller-name">聯絡人姓名</label>
-<input id="seller-name" name="sellerName" required=""/>
-</div>
-<div class="field">
-<label for="seller-contact">聯絡方式</label>
-<input id="seller-contact" name="sellerContact" required=""/>
-</div>
-<div class="form-actions span-2"><button class="primary" type="submit">發布刊登</button><button class="form-cancel" type="button" id="listing-cancel-edit" hidden>取消編輯</button></div>
-</form>
-</section>
-<section class="panel category-panel" id="category-panel"><header class="panel-heading"><h2 id="category-panel-title">全部票券</h2><p class="panel-subtitle" id="category-panel-subtitle">選擇左側類別以查看對應的刊登與篩選工具。</p></header><div class="panel-body"><div class="listing-header-toolbar"><div class="filters"><div class="filters-primary"><div class="filter"><label for="filter-type">刊登類型</label><select id="filter-type"><option value="all">全部</option><option value="auction">出售</option><option value="transfer">讓票</option><option value="swap">交換</option><option value="request">求票</option></select></div><div class="filter"><label for="filter-delivery">交付方式</label><select id="filter-delivery"><option value="all">全部</option><option value="meetup">面交</option><option value="shipping">寄件</option></select></div><div class="filter"><label for="filter-quantity-min">數量</label><input id="filter-quantity-min" min="1" placeholder="至少" type="number"/></div><div class="filter filter-range"><label class="filter-range-label" for="filter-created-start">發佈日期</label><div class="filter-range-fields"><input class="filter-range-input" id="filter-created-start" type="date"/><span class="filter-range-separator">至</span><input class="filter-range-input" id="filter-created-end" type="date"/></div></div><div class="filter filter-range"><label class="filter-range-label" for="filter-expires-start">截止日期</label><div class="filter-range-fields"><input class="filter-range-input" id="filter-expires-start" type="date"/><span class="filter-range-separator">至</span><input class="filter-range-input" id="filter-expires-end" type="date"/></div></div><div class="filter filter-search"><label for="filter-search">搜尋</label><div class="filter-search-input-group"><input id="filter-search" placeholder="搜尋..." type="search"/><button class="filter-search-add" id="filter-search-add" type="button" aria-label="新增搜尋條件">+</button></div><div class="filter-search-tags" id="filter-search-tags" aria-live="polite"></div></div><div class="filter-clear-wrapper"><button class="filter-clear" id="filter-clear" type="button">快速清除</button></div></div></div></div><div class="listing-grid" id="listings-container"></div><div class="listing-pagination" id="listing-pagination" hidden><button class="pagination-button" type="button" data-pagination-prev aria-label="上一頁"><span>上一頁</span></button><div class="pagination-status" aria-live="polite"><span class="pagination-info" data-pagination-info>第 0-0 筆，共 0 筆</span><span class="pagination-page" data-pagination-page>第 1 / 1 頁</span></div><button class="pagination-button" type="button" data-pagination-next aria-label="下一頁"><span>下一頁</span></button></div></div></section>
-</main>
-</div>
-</div>
-</div>
-<div aria-live="polite" class="toast-root" id="toast-root"></div>
-<template id="listing-template">
-<article class="listing-card">
-<div class="listing-card-media">
-<div class="listing-card-slider" hidden>
-<div class="listing-card-slider-track"></div>
-</div>
-<div class="listing-card-fallback">
-<span class="fallback-initial">TS</span>
-</div>
-<div class="listing-card-badges"></div>
-<button class="listing-card-gallery" type="button" aria-label="預覽圖片" hidden>
-<span class="listing-card-gallery-icon"></span>
-<span class="listing-card-gallery-count"></span>
-</button>
-<button class="listing-card-nav listing-card-nav-prev" type="button" aria-label="上一張" hidden>‹</button>
-<button class="listing-card-nav listing-card-nav-next" type="button" aria-label="下一張" hidden>›</button>
-</div>
-<div class="listing-card-body">
-<div class="listing-card-title-row">
-<div class="listing-card-title-group">
-<h3 class="listing-card-title"></h3>
-<div class="listing-card-owner-menu" hidden>
-  <button class="owner-menu-trigger" type="button" aria-haspopup="true" aria-expanded="false" aria-label="列出管理動作">
-    <span class="owner-menu-dots" aria-hidden="true">⋯</span>
-  </button>
-  <div class="owner-menu" role="menu">
-    <button class="owner-menu-item listing-card-edit" type="button" role="menuitem">編輯</button>
-    <button class="owner-menu-item listing-card-delete" type="button" role="menuitem">刪除</button>
-  </div>
-</div>
-</div>
-<button class="listing-card-favorite" type="button" aria-pressed="false" aria-label="加入我的最愛"></button>
-</div>
-<p class="listing-card-meta"></p>
-<p class="listing-card-description"></p>
-<p class="listing-card-published">發佈時間：—</p>
-</div>
-<div class="listing-card-footer">
-<div class="listing-card-price">
-<span class="price-label">價格</span>
-<strong class="price-value"></strong>
-</div>
-<button class="listing-card-action" type="button">顯示聯絡方式</button>
-</div>
-</article>
-</template>
-<div aria-hidden="true" class="image-modal" id="image-modal">
-<div class="image-modal-backdrop"></div>
-<div aria-label="圖片預覽" aria-modal="true" class="image-modal-content" role="dialog">
-<button aria-label="關閉" class="image-modal-close" type="button">×</button>
-<img alt="刊登圖片預覽" class="image-modal-image"/>
-<div class="image-modal-controls">
-<button aria-label="上一張" class="image-modal-nav image-modal-prev" type="button">‹</button>
-<span class="image-modal-counter"></span>
-<button aria-label="下一張" class="image-modal-nav image-modal-next" type="button">›</button>
-</div>
-</div>
-</div>
-</div>
-<div aria-hidden="true" class="member-modal" id="member-modal">
-  <div class="member-modal-backdrop" data-member-dismiss></div>
-  <section class="member-modal-panel" aria-labelledby="member-modal-title" aria-modal="true" role="dialog">
-    <button aria-label="關閉會員中心" class="member-modal-close" data-member-dismiss type="button">×</button>
-    <header class="member-modal-header">
-      <button class="member-logout" data-member-logout type="button" hidden>登出帳號</button>
-    </header>
-    <div class="member-modal-body">
-      <div class="member-tabs" role="tablist">
-        <button class="member-tab is-active" data-member-tab="login" role="tab" type="button">
-          <span class="member-tab-label">登入</span>
-        </button>
-        <button class="member-tab" data-member-tab="signup" role="tab" type="button">
-          <span class="member-tab-label">建立帳號</span>
-        </button>
+      <div class="sidebar-actions">
+        <button class="sidebar-action" data-scroll-target="#listing-form-panel" type="button">+ 建立刊登</button>
       </div>
-      <section class="member-view" data-member-view="login">
-        <h3>登入</h3>
-        <form class="member-form" id="member-login-form">
-          <label class="member-field">
-            <span>電子郵件</span>
-            <input autocomplete="email" id="member-login-email" name="email" placeholder="you@example.com" required type="email"/>
-          </label>
-          <label class="member-field member-field-password">
-            <span>密碼</span>
-            <div class="member-input-wrapper" data-password-field>
-              <input autocomplete="current-password" id="member-login-password" minlength="6" name="password" placeholder="至少 6 碼" required type="password"/>
-              <button class="member-password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="顯示密碼">
-                <span aria-hidden="true"></span>
-              </button>
+      <nav aria-label="票券分類" class="sidebar-nav">
+        <button aria-pressed="true" class="is-active" data-category="all" type="button">
+          <span aria-hidden="true" class="nav-indicator"></span>
+          <span>全部票券</span>
+        </button>
+        <button aria-pressed="false" data-category="演唱會" type="button">
+          <span aria-hidden="true" class="nav-indicator"></span>
+          <span>演唱會</span>
+        </button>
+        <button aria-pressed="false" data-category="體育賽事" type="button">
+          <span aria-hidden="true" class="nav-indicator"></span>
+          <span>體育賽事</span>
+        </button>
+        <button aria-pressed="false" data-category="戲劇舞台" type="button">
+          <span aria-hidden="true" class="nav-indicator"></span>
+          <span>戲劇舞台</span>
+        </button>
+        <button aria-pressed="false" data-category="綜藝活動" type="button">
+          <span aria-hidden="true" class="nav-indicator"></span>
+          <span>綜藝活動</span>
+        </button>
+        <button aria-pressed="false" data-category="展覽 / 市集" type="button">
+          <span aria-hidden="true" class="nav-indicator"></span>
+          <span>展覽 / 市集</span>
+        </button>
+        <button aria-pressed="false" data-category="收藏品 / 周邊" type="button">
+          <span aria-hidden="true" class="nav-indicator"></span>
+          <span>收藏品 / 周邊</span>
+        </button>
+        <button aria-pressed="false" data-category="其他" type="button">
+          <span aria-hidden="true" class="nav-indicator"></span>
+          <span>其他類別</span>
+        </button>
+        <div class="sidebar-divider" role="separator" aria-hidden="true"></div>
+        <p class="sidebar-personal-label">會員空間</p>
+        <button aria-pressed="false" class="sidebar-personal" data-category="my-listings" type="button">
+          <span aria-hidden="true" class="nav-indicator"></span>
+          <span>我的刊登</span>
+        </button>
+        <button aria-pressed="false" class="sidebar-personal" data-category="favorites" type="button">
+          <span aria-hidden="true" class="nav-indicator"></span>
+          <span>我的最愛</span>
+        </button>
+        <button aria-pressed="false" class="sidebar-personal" data-category="messages" type="button">
+          <span aria-hidden="true" class="nav-indicator"></span>
+          <span>我的訊息</span>
+        </button>
+      </nav>
+      <div class="sidebar-footer">重新發現熱門票券與收藏品</div>
+    </aside>
+    <div class="app-main">
+      <header class="app-topbar">
+        <div class="topbar-actions">
+          <button class="ghost-button theme-toggle" id="theme-toggle" type="button" aria-label="切換為亮色模式"></button>
+          <div class="account-control" data-account-control>
+            <button class="ghost-button login-button member-trigger" type="button" data-member-trigger
+              data-member-state="signed-out" data-account-trigger>登入 / 註冊</button>
+            <div class="account-menu" data-account-menu hidden>
+              <button class="account-menu-item" type="button" data-account-logout>會員登出</button>
             </div>
-          </label>
-          <label class="member-checkbox">
-            <input name="remember" type="checkbox"/>
-            <span>記住 Email</span>
-          </label>
-          <button class="member-primary" type="submit">登入帳號</button>
-        </form>
-        <div class="member-inline-links">
-          <button class="member-link" data-member-route="signup" type="button">我要註冊</button>
-          <span class="member-inline-divider">·</span>
-          <button class="member-link" data-member-route="reset" type="button">忘記密碼？</button>
+          </div>
         </div>
-      </section>
-      <section class="member-view" data-member-view="signup" hidden>
-        <h3>建立帳號</h3>
-        <form class="member-form" id="member-signup-form">
-          <label class="member-field">
-            <span>電子郵件</span>
-            <input autocomplete="email" id="member-signup-email" name="email" placeholder="you@example.com" required type="email"/>
-          </label>
-          <label class="member-field member-field-password">
-            <span>密碼</span>
-            <div class="member-input-wrapper" data-password-field>
-              <input autocomplete="new-password" id="member-signup-password" minlength="6" name="password" placeholder="至少 6 碼" required type="password"/>
-              <button class="member-password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="顯示密碼">
-                <span aria-hidden="true"></span>
-              </button>
+      </header>
+      <div class="app-content">
+        <main class="app-shell">
+          <section class="panel listing-form-panel is-hidden" hidden="" id="listing-form-panel">
+            <header class="panel-heading">
+              <h2>建立刊登</h2>
+              <p class="panel-subtitle">填寫票券資訊、上傳圖片並提交，讓買家立即找到你。</p>
+            </header>
+            <form class="form-grid" id="listing-form">
+              <div class="field-group span-2">
+                <div class="field">
+                  <label for="listing-title">刊登標題</label>
+                  <input id="listing-title" name="title" placeholder="例如：Taylor Swift VIP席位" required="" />
+                </div>
+                <div class="field field-quantity">
+                  <label for="listing-quantity">數量</label>
+                  <input id="listing-quantity" min="1" name="quantity" type="number" value="1" />
+                </div>
+              </div>
+              <div class="field">
+                <label for="listing-type">刊登類型</label>
+                <select id="listing-type" name="type" required="">
+                  <option value="">請選擇</option>
+                  <option value="auction">出售</option>
+                  <option value="transfer">讓票</option>
+                  <option value="swap">交換</option>
+                  <option value="request">求票</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="listing-category">票券類型</label>
+                <select id="listing-category" name="category">
+                  <option value="">請選擇</option>
+                  <option value="演唱會">演唱會</option>
+                  <option value="體育賽事">體育賽事</option>
+                  <option value="戲劇舞台">戲劇舞台</option>
+                  <option value="綜藝活動">綜藝活動</option>
+                  <option value="展覽 / 市集">展覽 / 市集</option>
+                  <option value="收藏品 / 周邊">收藏品 / 周邊</option>
+                  <option value="其他">其他（請於詳細資訊補充）</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="buy-now">商品價格（選填）</label>
+                <input id="buy-now" min="0" name="buyNow" placeholder="例如：2200" step="1" type="number" />
+              </div>
+              <div class="field">
+              </div>
+              <div class="field">
+                <label for="delivery-method">交付方式</label>
+                <select id="delivery-method" name="deliveryMethod" required="">
+                  <option value="meetup">面交</option>
+                  <option value="shipping">寄件</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="listing-urgency">急迫程度</label>
+                <select id="listing-urgency" name="urgency">
+                  <option value="normal">一般</option>
+                  <option value="urgent">超急</option>
+                </select>
+              </div>
+              <div class="field span-2 deadline-field">
+                <div class="deadline-inputs">
+                  <div class="deadline-control">
+                    <label class="deadline-control-label" for="listing-date">截止日期</label>
+                    <input class="deadline-input" id="listing-date" name="expiresDate" type="date" />
+                  </div>
+                  <div class="deadline-control">
+                    <label class="deadline-control-label" for="listing-time">截止時間</label>
+                    <input class="deadline-input" id="listing-time" name="expiresTime" step="60" type="time" />
+                  </div>
+                </div>
+              </div>
+              <div class="field">
+                <label for="listing-location">交易地點</label>
+                <input id="listing-location" name="location" />
+              </div>
+              <div class="field">
+                <label for="swap-lookfor">交換偏好（若刊登類型為交換）</label>
+                <input id="swap-lookfor" name="swapPreferences" />
+              </div>
+              <div class="field span-2">
+                <label for="listing-description">其他資訊（選填）</label>
+                <textarea id="listing-description" name="description" placeholder="座位資訊" rows="4"></textarea>
+                <label class="file-label" for="listing-images">上傳圖片（最多 6 張）</label>
+                <input accept="image/*" id="listing-images" multiple="" name="listing-images" type="file" />
+              </div>
+              <!-- <div class="field">
+                <label for="seller-name">聯絡人姓名</label>
+                <input id="seller-name" name="sellerName" required="" />
+              </div> -->
+              <!-- <div class="field">
+                <label for="seller-contact">聯絡方式</label>
+                <input id="seller-contact" name="sellerContact" required="" />
+              </div> -->
+              <div class="form-actions span-2"><button class="primary" type="submit">發布刊登</button><button
+                  class="form-cancel" type="button" id="listing-cancel-edit" hidden>取消編輯</button></div>
+            </form>
+          </section>
+          <section class="panel messages-panel is-hidden" hidden id="messages-panel">
+            <header class="panel-heading">
+              <h2>我的訊息</h2>
+              <p class="panel-subtitle">查看買家對您刊登的詢問。</p>
+            </header>
+            <div class="panel-body" id="messages-container">
+              <!-- Messages will be rendered here -->
             </div>
-          </label>
-          <label class="member-field member-field-password">
-            <span>確認密碼</span>
-            <div class="member-input-wrapper" data-password-field>
-              <input autocomplete="new-password" id="member-signup-confirm" minlength="6" name="confirmPassword" placeholder="再次輸入" required type="password"/>
-              <button class="member-password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="顯示密碼">
-                <span aria-hidden="true"></span>
-              </button>
+          </section>
+          <section class="panel category-panel" id="category-panel">
+            <header class="panel-heading">
+              <h2 id="category-panel-title">全部票券</h2>
+              <p class="panel-subtitle" id="category-panel-subtitle">選擇左側類別以查看對應的刊登與篩選工具。</p>
+            </header>
+            <div class="panel-body">
+              <div class="listing-header-toolbar">
+                <div class="filters">
+                  <div class="filters-primary">
+                    <div class="filter"><label for="filter-type">刊登類型</label><select id="filter-type">
+                        <option value="all">全部</option>
+                        <option value="auction">出售</option>
+                        <option value="transfer">讓票</option>
+                        <option value="swap">交換</option>
+                        <option value="request">求票</option>
+                      </select></div>
+                    <div class="filter"><label for="filter-delivery">交付方式</label><select id="filter-delivery">
+                        <option value="all">全部</option>
+                        <option value="meetup">面交</option>
+                        <option value="shipping">寄件</option>
+                      </select></div>
+                    <div class="filter"><label for="filter-quantity-min">數量</label><input id="filter-quantity-min"
+                        min="1" placeholder="至少" type="number" /></div>
+                    <div class="filter filter-range"><label class="filter-range-label"
+                        for="filter-created-start">發佈日期</label>
+                      <div class="filter-range-fields"><input class="filter-range-input" id="filter-created-start"
+                          type="date" /><span class="filter-range-separator">至</span><input class="filter-range-input"
+                          id="filter-created-end" type="date" /></div>
+                    </div>
+                    <div class="filter filter-range"><label class="filter-range-label"
+                        for="filter-expires-start">截止日期</label>
+                      <div class="filter-range-fields"><input class="filter-range-input" id="filter-expires-start"
+                          type="date" /><span class="filter-range-separator">至</span><input class="filter-range-input"
+                          id="filter-expires-end" type="date" /></div>
+                    </div>
+                    <div class="filter filter-search"><label for="filter-search">搜尋</label>
+                      <div class="filter-search-input-group"><input id="filter-search" placeholder="搜尋..."
+                          type="search" /><button class="filter-search-add" id="filter-search-add" type="button"
+                          aria-label="新增搜尋條件">+</button></div>
+                      <div class="filter-search-tags" id="filter-search-tags" aria-live="polite"></div>
+                    </div>
+                    <div class="filter-clear-wrapper"><button class="filter-clear" id="filter-clear"
+                        type="button">快速清除</button></div>
+                  </div>
+                </div>
+              </div>
+              <div class="listing-grid" id="listings-container"></div>
+              <div class="listing-pagination" id="listing-pagination" hidden><button class="pagination-button"
+                  type="button" data-pagination-prev aria-label="上一頁"><span>上一頁</span></button>
+                <div class="pagination-status" aria-live="polite"><span class="pagination-info" data-pagination-info>第
+                    0-0 筆，共 0 筆</span><span class="pagination-page" data-pagination-page>第 1 / 1 頁</span></div><button
+                  class="pagination-button" type="button" data-pagination-next
+                  aria-label="下一頁"><span>下一頁</span></button>
+              </div>
             </div>
-          </label>
-          <button class="member-primary" type="submit">建立會員</button>
-        </form>
-        <p class="member-footnote">已經有帳號？ <button class="member-link" data-member-route="login" type="button">返回登入</button></p>
-      </section>
-      <section class="member-view" data-member-view="reset" hidden>
-        <h3>重設密碼</h3>
-        <form class="member-form" id="member-reset-form">
-          <label class="member-field">
-            <span>電子郵件</span>
-            <input autocomplete="email" name="email" placeholder="you@example.com" required type="email"/>
-          </label>
-          <button class="member-primary" type="submit">寄送重設連結</button>
-        </form>
-        <p class="member-footnote">已經記起密碼？ <button class="member-link" data-member-route="login" type="button">返回登入</button></p>
-      </section>
-      <section class="member-view" data-member-view="recover" hidden>
-        <h3>設定新密碼</h3>
-        <form class="member-form" id="member-update-password-form">
-          <label class="member-field member-field-password">
-            <span>新的密碼</span>
-            <div class="member-input-wrapper" data-password-field>
-              <input autocomplete="new-password" name="newPassword" placeholder="至少 6 碼" minlength="6" required type="password"/>
-              <button class="member-password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="顯示密碼">
-                <span aria-hidden="true"></span>
-              </button>
-            </div>
-          </label>
-          <label class="member-field member-field-password">
-            <span>確認密碼</span>
-            <div class="member-input-wrapper" data-password-field>
-              <input autocomplete="new-password" name="confirmNewPassword" placeholder="再次輸入" minlength="6" required type="password"/>
-              <button class="member-password-toggle" type="button" data-password-toggle aria-pressed="false" aria-label="顯示密碼">
-                <span aria-hidden="true"></span>
-              </button>
-            </div>
-          </label>
-          <button class="member-primary" type="submit">更新密碼</button>
-        </form>
-        <p class="member-footnote">完成後可直接 <button class="member-link" data-member-route="login" type="button">返回登入</button></p>
-      </section>
-      <div aria-live="polite" class="member-message" data-member-message hidden></div>
+          </section>
+        </main>
+      </div>
     </div>
-  </section>
-</div>
-<script src="config.js"></script>
-<script type="module">
-      import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  </div>
+  <div aria-live="polite" class="toast-root" id="toast-root"></div>
+  <template id="listing-template">
+    <article class="listing-card">
+      <div class="listing-card-media">
+        <div class="listing-card-slider" hidden>
+          <div class="listing-card-slider-track"></div>
+        </div>
+        <div class="listing-card-fallback">
+          <span class="fallback-initial">TS</span>
+        </div>
+        <div class="listing-card-badges"></div>
+        <button class="listing-card-gallery" type="button" aria-label="預覽圖片" hidden>
+          <span class="listing-card-gallery-icon"></span>
+          <span class="listing-card-gallery-count"></span>
+        </button>
+        <button class="listing-card-nav listing-card-nav-prev" type="button" aria-label="上一張" hidden>‹</button>
+        <button class="listing-card-nav listing-card-nav-next" type="button" aria-label="下一張" hidden>›</button>
+      </div>
+      <div class="listing-card-body">
+        <div class="listing-card-title-row">
+          <div class="listing-card-title-group">
+            <h3 class="listing-card-title"></h3>
+            <div class="listing-card-owner-menu" hidden>
+              <button class="owner-menu-trigger" type="button" aria-haspopup="true" aria-expanded="false"
+                aria-label="列出管理動作">
+                <span class="owner-menu-dots" aria-hidden="true">⋯</span>
+              </button>
+              <div class="owner-menu" role="menu">
+                <button class="owner-menu-item listing-card-edit" type="button" role="menuitem">編輯</button>
+                <button class="owner-menu-item listing-card-delete" type="button" role="menuitem">刪除</button>
+              </div>
+            </div>
+          </div>
+          <button class="listing-card-favorite" type="button" aria-pressed="false" aria-label="加入我的最愛"></button>
+        </div>
+        <p class="listing-card-meta"></p>
+        <p class="listing-card-description"></p>
+        <p class="listing-card-published">發佈時間：—</p>
+      </div>
+      <div class="listing-card-footer">
+        <div class="listing-card-price">
+          <span class="price-label">價格</span>
+          <strong class="price-value"></strong>
+        </div>
+        <button class="listing-card-action" type="button">顯示聯絡方式</button>
+      </div>
+    </article>
+  </template>
+  <div aria-hidden="true" class="image-modal" id="image-modal">
+    <div class="image-modal-backdrop"></div>
+    <div aria-label="圖片預覽" aria-modal="true" class="image-modal-content" role="dialog">
+      <button aria-label="關閉" class="image-modal-close" type="button">×</button>
+      <img alt="刊登圖片預覽" class="image-modal-image" />
+      <div class="image-modal-controls">
+        <button aria-label="上一張" class="image-modal-nav image-modal-prev" type="button">‹</button>
+        <span class="image-modal-counter"></span>
+        <button aria-label="下一張" class="image-modal-nav image-modal-next" type="button">›</button>
+      </div>
+    </div>
+  </div>
+  </div>
+  <div aria-hidden="true" class="member-modal" id="member-modal">
+    <div class="member-modal-backdrop" data-member-dismiss></div>
+    <section class="member-modal-panel" aria-labelledby="member-modal-title" aria-modal="true" role="dialog">
+      <button aria-label="關閉會員中心" class="member-modal-close" data-member-dismiss type="button">×</button>
+      <header class="member-modal-header">
+        <button class="member-logout" data-member-logout type="button" hidden>登出帳號</button>
+      </header>
+      <div class="member-modal-body">
+        <div class="member-tabs" role="tablist">
+          <button class="member-tab is-active" data-member-tab="login" role="tab" type="button">
+            <span class="member-tab-label">登入</span>
+          </button>
+          <button class="member-tab" data-member-tab="signup" role="tab" type="button">
+            <span class="member-tab-label">建立帳號</span>
+          </button>
+        </div>
+        <section class="member-view" data-member-view="login">
+          <h3>登入</h3>
+          <form class="member-form" id="member-login-form">
+            <label class="member-field">
+              <span>電子郵件</span>
+              <input autocomplete="email" id="member-login-email" name="email" placeholder="you@example.com" required
+                type="email" />
+            </label>
+            <label class="member-field member-field-password">
+              <span>密碼</span>
+              <div class="member-input-wrapper" data-password-field>
+                <input autocomplete="current-password" id="member-login-password" minlength="6" name="password"
+                  placeholder="至少 6 碼" required type="password" />
+                <button class="member-password-toggle" type="button" data-password-toggle aria-pressed="false"
+                  aria-label="顯示密碼">
+                  <span aria-hidden="true"></span>
+                </button>
+              </div>
+            </label>
+            <label class="member-checkbox">
+              <input name="remember" type="checkbox" />
+              <span>記住 Email</span>
+            </label>
+            <button class="member-primary" type="submit">登入帳號</button>
+          </form>
+          <div class="member-inline-links">
+            <button class="member-link" data-member-route="signup" type="button">我要註冊</button>
+            <span class="member-inline-divider">·</span>
+            <button class="member-link" data-member-route="reset" type="button">忘記密碼？</button>
+          </div>
+        </section>
+        <section class="member-view" data-member-view="signup" hidden>
+          <h3>建立帳號</h3>
+          <form class="member-form" id="member-signup-form">
+            <label class="member-field">
+              <span>電子郵件</span>
+              <input autocomplete="email" id="member-signup-email" name="email" placeholder="you@example.com" required
+                type="email" />
+            </label>
+            <label class="member-field member-field-password">
+              <span>密碼</span>
+              <div class="member-input-wrapper" data-password-field>
+                <input autocomplete="new-password" id="member-signup-password" minlength="6" name="password"
+                  placeholder="至少 6 碼" required type="password" />
+                <button class="member-password-toggle" type="button" data-password-toggle aria-pressed="false"
+                  aria-label="顯示密碼">
+                  <span aria-hidden="true"></span>
+                </button>
+              </div>
+            </label>
+            <label class="member-field member-field-password">
+              <span>確認密碼</span>
+              <div class="member-input-wrapper" data-password-field>
+                <input autocomplete="new-password" id="member-signup-confirm" minlength="6" name="confirmPassword"
+                  placeholder="再次輸入" required type="password" />
+                <button class="member-password-toggle" type="button" data-password-toggle aria-pressed="false"
+                  aria-label="顯示密碼">
+                  <span aria-hidden="true"></span>
+                </button>
+              </div>
+            </label>
+            <button class="member-primary" type="submit">建立會員</button>
+          </form>
+          <p class="member-footnote">已經有帳號？ <button class="member-link" data-member-route="login"
+              type="button">返回登入</button></p>
+        </section>
+        <section class="member-view" data-member-view="reset" hidden>
+          <h3>重設密碼</h3>
+          <form class="member-form" id="member-reset-form">
+            <label class="member-field">
+              <span>電子郵件</span>
+              <input autocomplete="email" name="email" placeholder="you@example.com" required type="email" />
+            </label>
+            <button class="member-primary" type="submit">寄送重設連結</button>
+          </form>
+          <p class="member-footnote">已經記起密碼？ <button class="member-link" data-member-route="login"
+              type="button">返回登入</button></p>
+        </section>
+        <section class="member-view" data-member-view="recover" hidden>
+          <h3>設定新密碼</h3>
+          <form class="member-form" id="member-update-password-form">
+            <label class="member-field member-field-password">
+              <span>新的密碼</span>
+              <div class="member-input-wrapper" data-password-field>
+                <input autocomplete="new-password" name="newPassword" placeholder="至少 6 碼" minlength="6" required
+                  type="password" />
+                <button class="member-password-toggle" type="button" data-password-toggle aria-pressed="false"
+                  aria-label="顯示密碼">
+                  <span aria-hidden="true"></span>
+                </button>
+              </div>
+            </label>
+            <label class="member-field member-field-password">
+              <span>確認密碼</span>
+              <div class="member-input-wrapper" data-password-field>
+                <input autocomplete="new-password" name="confirmNewPassword" placeholder="再次輸入" minlength="6" required
+                  type="password" />
+                <button class="member-password-toggle" type="button" data-password-toggle aria-pressed="false"
+                  aria-label="顯示密碼">
+                  <span aria-hidden="true"></span>
+                </button>
+              </div>
+            </label>
+            <button class="member-primary" type="submit">更新密碼</button>
+          </form>
+          <p class="member-footnote">完成後可直接 <button class="member-link" data-member-route="login"
+              type="button">返回登入</button></p>
+        </section>
+        <div aria-live="polite" class="member-message" data-member-message hidden></div>
+      </div>
+    </section>
+  </div>
+  <script src="config.js"></script>
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-      let supabaseClient = null;
+    let supabaseClient = null;
 
-      if (
-        window.supabaseConfig &&
-        window.supabaseConfig.url &&
-        window.supabaseConfig.url.startsWith('http') &&
-        window.supabaseConfig.anonKey &&
-        !window.supabaseConfig.anonKey.startsWith('YOUR_SUPABASE')
-      ) {
-        supabaseClient = createClient(window.supabaseConfig.url, window.supabaseConfig.anonKey);
-      } else {
-        console.warn('Supabase config is not set. The app will use in-memory data only.');
-      }
+    if (
+      window.supabaseConfig &&
+      window.supabaseConfig.url &&
+      window.supabaseConfig.url.startsWith('http') &&
+      window.supabaseConfig.anonKey &&
+      !window.supabaseConfig.anonKey.startsWith('YOUR_SUPABASE')
+    ) {
+      supabaseClient = createClient(window.supabaseConfig.url, window.supabaseConfig.anonKey);
+    } else {
+      console.warn('Supabase config is not set. The app will use in-memory data only.');
+    }
 
-      window.__supabase = supabaseClient;
-    </script>
-<script src="./assets/theme.js" type="module"></script>
-<script src="./assets/app.js" type="module"></script>
+    window.__supabase = supabaseClient;
+  </script>
+  <script src="./assets/theme.js" type="module"></script>
+  <script src="./assets/app.js" type="module"></script>
 </body>
+
 </html>
