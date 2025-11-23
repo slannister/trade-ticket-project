@@ -508,6 +508,11 @@ body[data-theme='light'] .account-menu-item {
     width: 100%;
     text-align: center;
   }
+
+  .form-actions .primary {
+    padding: 0.65rem 1rem;
+    font-size: 0.9rem;
+  }
 }
 
 @media (max-width: 1180px) {
@@ -672,7 +677,14 @@ body[data-theme='light'] .account-menu-item {
   }
 
   .deadline-input {
-    padding: 0.65rem 0.85rem;
+    padding: 0.6rem 0.75rem;
+  }
+
+  .deadline-input[type='date'],
+  .deadline-input[type='time'] {
+    padding-left: 2.2rem;
+    background-position: 0.7rem center;
+    background-size: 0.9rem;
   }
 
   .filters {
@@ -2365,6 +2377,37 @@ body[data-theme='light'] .filter-search-tag {
 
   .detail-shell {
     padding: 0 20px 48px;
+  }
+
+  .deadline-inputs {
+    grid-template-columns: 1fr;
+  }
+
+  .deadline-input {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.9rem;
+  }
+
+  .deadline-input[type='date'],
+  .deadline-input[type='time'] {
+    padding-left: 2.2rem;
+    background-position: 0.7rem center;
+    background-size: 0.9rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .form-actions .primary {
+    width: 100%;
+    padding: 0.65rem 1rem;
+    font-size: 0.9rem;
+  }
+
+  .form-cancel {
+    width: 100%;
   }
 }
 

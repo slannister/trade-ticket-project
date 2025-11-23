@@ -58,6 +58,7 @@ const normalizeListing = row => {
     category: row.category ?? '',
     quantity: row.quantity ?? '',
     deliveryMethod: row.deliveryMethod ?? row.delivery_method ?? '',
+    location: row.location ?? '',
     expiresAt: toIsoString(row.expiresAt ?? row.expires_at) ?? row.expires_at ?? null,
     buyNow: row.buyNow ?? row.buy_now ?? '',
     faceValue: row.faceValue ?? row.face_value ?? '',
@@ -313,6 +314,7 @@ const renderListing = (listing, root) => {
   const categoryEl = root.querySelector('[data-category]');
   const quantityEl = root.querySelector('[data-quantity]');
   const deliveryEl = root.querySelector('[data-delivery]');
+  const locationEl = root.querySelector('[data-location]');
   const expiresEl = root.querySelector('[data-expires]');
   const priceEl = root.querySelector('[data-price]');
   const contactEl = root.querySelector('[data-contact]');
@@ -335,6 +337,7 @@ const renderListing = (listing, root) => {
   categoryEl.textContent = listing.category || '—';
   quantityEl.textContent = listing.quantity || '—';
   deliveryEl.textContent = formatDeliveryMethod(listing.deliveryMethod);
+  locationEl.textContent = listing.location || '—';
   expiresEl.textContent = listing.expiresAt ? formatDateValue(listing.expiresAt) : '—';
 
   if (listing.buyNow) {
