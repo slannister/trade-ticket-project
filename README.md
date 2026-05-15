@@ -1,62 +1,169 @@
-# 票券交易交流站（Trade Ticket Exchange）
+# 票券交易交流站（TikSwap）
 
 ## 產品概述
-- 輕量級的票券與收藏品交易平台，支援競標定價或以交換為導向的刊登方式。
-- 透過結構化的出售、快速交換與透明的談判紀錄，取代在社群平台上零散的私訊交易。
 
-## 核心使用情境
-- 作為賣家，我可以刊登票券，清楚表達價格期待、原價讓票或可接受的交換條件。
-- 作為買家，我可以快速出售，並附上備註與聯絡方式，加速談成交易。
-- 作為交換者，我可以針對換物需求提出交換提案，不一定要用現金成交。
-- 雙方都能查看談判歷程，在成交後標記為完成，留下交易紀錄。
+輕量級的票券與收藏品交易平台，支援競標定價或以交換為導向的刊登方式。透過結構化的出售、快速交換與透明的談判紀錄，取代在社群平台上零散的私訊交易。
 
-## 已完成的 MVP 能力
-- 首頁儀表板提供即時統計、篩選器與緊急標記，幫助快速判斷優先順序。
-- 刊登表單支援競標、讓票或交換類型，並可填寫票券詳情與賣家聯絡方式。
-- 談判流程支援出售、最高價追蹤，以及交換提案與聯絡資訊記錄。
-- 成交流程可接受最高出售、選擇交換提案或自行填寫成交資訊後關閉。
-- 使用瀏覽器 `localStorage` 永久儲存資料，並內建示範資料方便快速體驗。
-- 全新深色系介面、摘要圖卡與刊登高亮效果，讓最新刊登立即被看見。
+## 技術架構
 
-## 待辦事項與完成狀態
-- [x] **定義資料模型**：針對刊登、出售、交換提案設定欄位與狀態。
-- [x] **設計使用流程**：首頁儀表板、刊登表單、列表卡片與談判區塊。
-- [x] **實作前端**：以純 HTML/CSS/JS 建立模組化元件與狀態管理。
-- [x] **支援競標流程**：刊登、查看最高出售、提交出售、接受並關閉交易。
-- [x] **支援讓票流程**：刊登原價或固定價，並紀錄成交後的補充說明。
-- [x] **支援交換流程**：刊登交換需求、提交提案、接受或拒絕交換。
-- [x] **維持會話狀態**：透過 `localStorage` 保留資料並提供預設示範案例。
-- [x] **交易加速輔助**：提供篩選、緊急標章與建議提示，提升撮合效率。
-- [x] **撰寫文件**：包含使用指南、未來增強方向與佈署備忘。
-- [x] **會員系統**：全新「會員護照中心」提供本地登入 / 註冊體驗，僅授權會員能送出刊登。
-- [x] **會員個人空間**：側邊欄新增「我的刊登」與「我的最愛」，可管理自己刊登與收藏。
+### 後端
+- **Framework**: Flask 3.0
+- **ORM**: Flask-SQLAlchemy 3.1
+- **認證**: Flask-JWT-Extended 4.6 + Bcrypt
+- **資料庫**: SQLite（開發）/ PostgreSQL（生產）
+- **API**: RESTful JSON API
 
-## 本機使用方式
-1. 以瀏覽器直接開啟 `index.html`（支援 Chrome、Edge、Firefox、Safari）。
-2. 先體驗內建的示範刊登，了解出售、交換與成交流程。
-3. 透過表單刊登自己的票券資訊；資料會儲存在目前瀏覽器的 `localStorage`。
-4. 若需要重置示範資料，可在瀏覽器開發者工具的 Application/Storage 區清除站台資料。
+### 前端
+- **原生 JavaScript**（無框架）
+- **模組化架構**: Utils / API Client / Modules 三層分離
+- **CSS**: 原生 CSS Variables（支援深色/淺色主題）
 
-## 會員系統設定與使用
-1. 右上角「登入 / 註冊」按鈕會開啟護照中心，所有會員資料僅儲存在瀏覽器的 `localStorage`，清除站台資料即可完全重置。  
-2. **快速登入**：輸入 Email 與密碼即可登入；預設示範帳號為 `founder@tikswap.app / founder123`，方便 demo 或教育環境直接體驗。  
-3. **建立帳號**：設定顯示名稱、Email、密碼與聯絡方式即可完成註冊，系統會立即登入並同步開啟「我的刊登／我的最愛」。  
-4. 未登入時提交刊登會自動叫出護照中心，提醒使用者先登入；若仍需要把刊登寫入 Supabase，記得保留 `config.js` 的資料庫設定即可，會員系統本身已脫鉤。
+### 專案結構
 
-## 使用流程導覽
-1. **瀏覽儀表板**：利用篩選器掌握緊急案件或僅交換的刊登。
-2. **建立刊登**：填寫競標價格或交換需求，以及轉讓方式與買家須知。
-3. **進行談判**：買家可以送出出售或交換提案，附上備註與聯絡方式協助成交。
-4. **結案紀錄**：接受最高出售、選定交換對象，或手動紀錄完成狀態以便追蹤。
+```
+trade-ticket-project/
+├── app.py                      # Flask 主應用工廠
+├── config.py                   # 環境變數設定
+├── requirements.txt           # Python 依賴
+│
+├── src/                        # 後端 src
+│   ├── extensions.py          # Flask extensions（db, jwt, bcrypt）
+│   ├── models.py               # SQLAlchemy Models（M）
+│   │
+│   ├── services/              # 商業邏輯層（BL）
+│   │   ├── __init__.py
+│   │   ├── auth_service.py    # 認證服務
+│   │   ├── listing_service.py # 刊登服務
+│   │   ├── inquiry_service.py # 詢問服務
+│   │   └── favorite_service.py
+│   │
+│   ├── routes/                # 控制器層（C）
+│   │   ├── __init__.py        # 路由註冊
+│   │   ├── auth.py            # 認證路由
+│   │   ├── listings.py        # 刊登路由
+│   │   ├── inquiries.py       # 詢問路由
+│   │   ├── favorites.py       # 最愛路由
+│   │   └── upload.py          # 上傳路由
+│   │
+│   └── utils/                 # 工具函式
+│       ├── responses.py        # 統一 API 響應格式
+│       └── validators.py      # 輸入驗證
+│
+├── static/                     # 前端靜態資源
+│   ├── css/
+│   │   └── styles.css
+│   └── js/
+│       ├── app.js             # 主頁入口
+│       ├── detail.js          # 詳情頁入口
+│       ├── api/               # API 客戶端
+│       │   ├── client.js      # Fetch wrapper
+│       │   ├── auth.js
+│       │   ├── listings.js
+│       │   └── inquiries.js
+│       ├── modules/           # 功能模組
+│       │   ├── auth.js
+│       │   ├── listings.js
+│       │   ├── favorites.js
+│       │   ├── messages.js
+│       │   ├── filters.js
+│       │   └── pagination.js
+│       └── utils/             # 工具函式
+│           ├── date.js
+│           ├── dom.js
+│           ├── storage.js
+│           └── toast.js
+│
+├── templates/                  # Jinja2 模板
+│   ├── index.html
+│   └── detail.html
+│
+└── uploads/                   # 圖片上傳目錄
+    └── listings/
+```
+
+## 設計模式
+
+### MVC + Service Layer
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Routes    │ ──▶ │  Services   │ ──▶ │   Models    │
+│ (Controller)│     │    (BL)     │     │     (M)     │
+└─────────────┘     └─────────────┘     └─────────────┘
+       │                   │                   │
+       │            ┌──────┴──────┐            │
+       │            │             │            │
+       ▼            ▼             ▼            ▼
+   HTTP Request  Business    Data Access    SQLAlchemy
+   Response      Logic       Operations     Models
+```
+
+### 分層職責
+
+| 層級 | 職責 | 範例 |
+|------|------|------|
+| **Routes (C)** | HTTP 請求處理、引數驗證、響應格式化 | `@auth_bp.route("/login")` |
+| **Services (BL)** | 商業邏輯、資料校驗、跨表操作 | `AuthService.login()` |
+| **Models (M)** | 資料結構、ORM 映射、`to_dict()` 序列化 | `User.query.filter_by()` |
+| **Utils** | 共用工具：響應格式、驗證器、日期處理 | `success()`, `validate_email()` |
+
+## API 端點
+
+### 認證 `/api/auth`
+| Method | Endpoint | 說明 | Auth |
+|--------|----------|------|------|
+| POST | `/register` | 註冊 | - |
+| POST | `/login` | 登入 | - |
+| POST | `/logout` | 登出 | JWT |
+| GET | `/me` | 當前用戶 | JWT |
+| POST | `/password/reset` | 重設密碼 | - |
+
+### 刊登 `/api/listings`
+| Method | Endpoint | 說明 | Auth |
+|--------|----------|------|------|
+| GET | `` | 列表（分頁/篩選） | - |
+| POST | `` | 建立刊登 | JWT |
+| GET | `/<id>` | 詳情 | - |
+| PUT | `/<id>` | 更新 | JWT |
+| DELETE | `/id>` | 刪除 | JWT |
+| GET | `/mine` | 我的刊登 | JWT |
+
+### 詢問 `/api/inquiries`
+| Method | Endpoint | 說明 | Auth |
+|--------|----------|------|------|
+| GET | `` | 我的訊息 | JWT |
+| POST | `` | 發送詢問 | - |
+
+### 最愛 `/api/favorites`
+| Method | Endpoint | 說明 | Auth |
+|--------|----------|------|------|
+| GET | `` | 我的最愛 | JWT |
+| POST | `/<listing_id>` | 加入最愛 | JWT |
+| DELETE | `/<listing_id>` | 移除最愛 | JWT |
+
+## 本機執行
+
+```bash
+cd trade-ticket-project
+pip install -r requirements.txt
+python app.py
+```
+
+瀏覽器開啟 http://localhost:5000
+
+## 環境變數
+
+```bash
+SECRET_KEY=your-secret-key
+JWT_SECRET_KEY=your-jwt-secret
+DATABASE_URL=sqlite:///tikswap.db
+```
 
 ## 未來增強方向
-- 建立帳號系統、身分驗證、第三方支付／保證金與評價信用。
-- 串接後端（Supabase / Firebase / 自建 API）實現多使用者即時同步。
-- 新增推播通知：如被超價、刊登即將到期或賣家提醒。
-- 支援多幣別與面額比對，協助偵測高價轉賣的風險。
-- 調整行動版 UI 與多語系（中文、英文等）介面。
 
-## 實作備忘
-- MVP 完全在前端執行，未連接伺服器；未來可切換為 API 驅動以提升安全性與擴充性。
-- 以簡潔的 JavaScript 控制器管理狀態並重新渲染 UI，無需前端框架。
-- 布局以桌面端優化為主，同時兼顧行動版的卡片式呈現。
+- [ ] 串接 PostgreSQL 做生產部署
+- [ ] 新增郵件發送（註冊驗證、密碼重設）
+- [ ] 推播通知
+- [ ] 多幣別與面額比對
+- [ ] 行動版 UI 優化
+- [ ] 多語系（中文、英文）
