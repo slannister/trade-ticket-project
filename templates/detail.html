@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>刊登詳情</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+</head>
+<body class="detail-page" data-theme="dark">
+  <header class="detail-topbar">
+    <a class="detail-back" href="/">← 返回列表</a>
+    <button id="theme-toggle" class="ghost-button theme-toggle" type="button" aria-label="切換為亮色模式"></button>
+  </header>
+  <main class="detail-shell" data-detail-root>
+    <section class="detail-card">
+      <div class="detail-content">
+        <div class="detail-header">
+          <h1 data-title>刊登標題</h1>
+          <div class="detail-tags" data-tags></div>
+        </div>
+        <p class="detail-description" data-description></p>
+        <dl class="detail-info">
+          <div>
+            <dt>刊登類型</dt>
+            <dd data-type>—</dd>
+          </div>
+          <div>
+            <dt>類別</dt>
+            <dd data-category>—</dd>
+          </div>
+          <div>
+            <dt>數量</dt>
+            <dd data-quantity>—</dd>
+          </div>
+          <div>
+            <dt>交付方式</dt>
+            <dd data-delivery>—</dd>
+          </div>
+          <div>
+            <dt>交易地點</dt>
+            <dd data-location>—</dd>
+          </div>
+          <div>
+            <dt>截止時間</dt>
+            <dd data-expires>—</dd>
+          </div>
+          <div>
+            <dt>價格</dt>
+            <dd data-price>—</dd>
+          </div>
+        </dl>
+        <div class="detail-contact">
+          <p data-contact>—</p>
+        </div>
+      </div>
+    </section>
+    <section class="detail-inquiry">
+      <h2>詢問賣家</h2>
+      <form id="inquiry-form" class="inquiry-form">
+        <div class="field">
+          <label for="inquiry-message">您的訊息</label>
+          <textarea id="inquiry-message" name="message" placeholder="你好，我對這張票有興趣..." required></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="submit" class="primary">送出</button>
+        </div>
+      </form>
+    </section>
+  </main>
+  <div id="toast-root" class="toast-root"></div>
+  <script src="{{ url_for('static', filename='js/detail.js') }}" type="module"></script>
+</body>
+</html>

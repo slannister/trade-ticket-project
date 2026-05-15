@@ -1,14 +1,11 @@
 <!DOCTYPE html>
-
 <html lang="zh-Hant">
-
 <head>
   <meta charset="utf-8" />
   <meta content="width=device-width, initial-scale=1.0" name="viewport" />
   <title>票券交易交流站</title>
-  <link href="./assets/styles.css" rel="stylesheet" />
+  <link href="{{ url_for('static', filename='css/styles.css') }}" rel="stylesheet" />
 </head>
-
 <body data-theme="dark">
   <div class="app-layout">
     <aside class="app-sidebar">
@@ -83,7 +80,7 @@
       </header>
       <div class="app-content">
         <main class="app-shell">
-          <section class="panel listing-form-panel is-hidden" hidden="" id="listing-form-panel">
+          <section class="panel listing-form-panel is-hidden" hidden id="listing-form-panel">
             <header class="panel-heading">
               <h2>建立刊登</h2>
               <p class="panel-subtitle">填寫票券資訊、上傳圖片並提交，讓買家立即找到你。</p>
@@ -92,7 +89,7 @@
               <div class="field-group span-2">
                 <div class="field">
                   <label for="listing-title">刊登標題</label>
-                  <input id="listing-title" name="title" placeholder="例如：Taylor Swift VIP席位" required="" />
+                  <input id="listing-title" name="title" placeholder="例如：Taylor Swift VIP席位" required />
                 </div>
                 <div class="field field-quantity">
                   <label for="listing-quantity">數量</label>
@@ -101,7 +98,7 @@
               </div>
               <div class="field">
                 <label for="listing-type">刊登類型</label>
-                <select id="listing-type" name="type" required="">
+                <select id="listing-type" name="type" required>
                   <option value="">請選擇</option>
                   <option value="auction">出售</option>
                   <option value="transfer">讓票</option>
@@ -124,13 +121,13 @@
               </div>
               <div class="field">
                 <label for="buy-now">商品價格（選填）</label>
-                <input id="buy-now" min="0" name="buyNow" placeholder="例如：2200" step="1" type="number" />
+                <input id="buy-now" min="0" name="buy_now" placeholder="例如：2200" step="1" type="number" />
               </div>
               <div class="field">
               </div>
               <div class="field">
                 <label for="delivery-method">交付方式</label>
-                <select id="delivery-method" name="deliveryMethod" required="">
+                <select id="delivery-method" name="delivery_method" required>
                   <option value="meetup">面交</option>
                   <option value="shipping">寄件</option>
                 </select>
@@ -146,11 +143,11 @@
                 <div class="deadline-inputs">
                   <div class="deadline-control">
                     <label class="deadline-control-label" for="listing-date">截止日期</label>
-                    <input class="deadline-input" id="listing-date" name="expiresDate" type="date" />
+                    <input class="deadline-input" id="listing-date" name="expires_date" type="date" />
                   </div>
                   <div class="deadline-control">
                     <label class="deadline-control-label" for="listing-time">截止時間</label>
-                    <input class="deadline-input" id="listing-time" name="expiresTime" step="60" type="time" />
+                    <input class="deadline-input" id="listing-time" name="expires_time" step="60" type="time" />
                   </div>
                 </div>
               </div>
@@ -160,24 +157,18 @@
               </div>
               <div class="field">
                 <label for="swap-lookfor">交換偏好（若刊登類型為交換）</label>
-                <input id="swap-lookfor" name="swapPreferences" />
+                <input id="swap-lookfor" name="swap_preferences" />
               </div>
               <div class="field span-2">
                 <label for="listing-description">其他資訊（選填）</label>
                 <textarea id="listing-description" name="description" placeholder="座位資訊" rows="4"></textarea>
                 <label class="file-label" for="listing-images">上傳圖片（最多 6 張）</label>
-                <input accept="image/*" id="listing-images" multiple="" name="listing-images" type="file" />
+                <input accept="image/*" id="listing-images" multiple name="listing-images" type="file" />
               </div>
-              <!-- <div class="field">
-                <label for="seller-name">聯絡人姓名</label>
-                <input id="seller-name" name="sellerName" required="" />
-              </div> -->
-              <!-- <div class="field">
-                <label for="seller-contact">聯絡方式</label>
-                <input id="seller-contact" name="sellerContact" required="" />
-              </div> -->
-              <div class="form-actions span-2"><button class="primary" type="submit">發布刊登</button><button
-                  class="form-cancel" type="button" id="listing-cancel-edit" hidden>取消編輯</button></div>
+              <div class="form-actions span-2">
+                <button class="primary" type="submit">發布刊登</button>
+                <button class="form-cancel" type="button" id="listing-cancel-edit" hidden>取消編輯</button>
+              </div>
             </form>
           </section>
           <section class="panel messages-panel is-hidden" hidden id="messages-panel">
@@ -236,12 +227,13 @@
                 </div>
               </div>
               <div class="listing-grid" id="listings-container"></div>
-              <div class="listing-pagination" id="listing-pagination" hidden><button class="pagination-button"
-                  type="button" data-pagination-prev aria-label="上一頁"><span>上一頁</span></button>
-                <div class="pagination-status" aria-live="polite"><span class="pagination-info" data-pagination-info>第
-                    0-0 筆，共 0 筆</span><span class="pagination-page" data-pagination-page>第 1 / 1 頁</span></div><button
-                  class="pagination-button" type="button" data-pagination-next
-                  aria-label="下一頁"><span>下一頁</span></button>
+              <div class="listing-pagination" id="listing-pagination" hidden>
+                <button class="pagination-button" type="button" data-pagination-prev aria-label="上一頁"><span>上一頁</span></button>
+                <div class="pagination-status" aria-live="polite">
+                  <span class="pagination-info" data-pagination-info>第 0-0 筆，共 0 筆</span>
+                  <span class="pagination-page" data-pagination-page>第 1 / 1 頁</span>
+                </div>
+                <button class="pagination-button" type="button" data-pagination-next aria-label="下一頁"><span>下一頁</span></button>
               </div>
             </div>
           </section>
@@ -308,7 +300,6 @@
         <button aria-label="下一張" class="image-modal-nav image-modal-next" type="button">›</button>
       </div>
     </div>
-  </div>
   </div>
   <div aria-hidden="true" class="member-modal" id="member-modal">
     <div class="member-modal-backdrop" data-member-dismiss></div>
@@ -404,62 +395,10 @@
           <p class="member-footnote">已經記起密碼？ <button class="member-link" data-member-route="login"
               type="button">返回登入</button></p>
         </section>
-        <section class="member-view" data-member-view="recover" hidden>
-          <h3>設定新密碼</h3>
-          <form class="member-form" id="member-update-password-form">
-            <label class="member-field member-field-password">
-              <span>新的密碼</span>
-              <div class="member-input-wrapper" data-password-field>
-                <input autocomplete="new-password" name="newPassword" placeholder="至少 6 碼" minlength="6" required
-                  type="password" />
-                <button class="member-password-toggle" type="button" data-password-toggle aria-pressed="false"
-                  aria-label="顯示密碼">
-                  <span aria-hidden="true"></span>
-                </button>
-              </div>
-            </label>
-            <label class="member-field member-field-password">
-              <span>確認密碼</span>
-              <div class="member-input-wrapper" data-password-field>
-                <input autocomplete="new-password" name="confirmNewPassword" placeholder="再次輸入" minlength="6" required
-                  type="password" />
-                <button class="member-password-toggle" type="button" data-password-toggle aria-pressed="false"
-                  aria-label="顯示密碼">
-                  <span aria-hidden="true"></span>
-                </button>
-              </div>
-            </label>
-            <button class="member-primary" type="submit">更新密碼</button>
-          </form>
-          <p class="member-footnote">完成後可直接 <button class="member-link" data-member-route="login"
-              type="button">返回登入</button></p>
-        </section>
         <div aria-live="polite" class="member-message" data-member-message hidden></div>
       </div>
     </section>
   </div>
-  <script src="config.js"></script>
-  <script type="module">
-    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-    let supabaseClient = null;
-
-    if (
-      window.supabaseConfig &&
-      window.supabaseConfig.url &&
-      window.supabaseConfig.url.startsWith('http') &&
-      window.supabaseConfig.anonKey &&
-      !window.supabaseConfig.anonKey.startsWith('YOUR_SUPABASE')
-    ) {
-      supabaseClient = createClient(window.supabaseConfig.url, window.supabaseConfig.anonKey);
-    } else {
-      console.warn('Supabase config is not set. The app will use in-memory data only.');
-    }
-
-    window.__supabase = supabaseClient;
-  </script>
-  <script src="./assets/theme.js" type="module"></script>
-  <script src="./assets/app.js" type="module"></script>
+  <script src="{{ url_for('static', filename='js/app.js') }}" type="module"></script>
 </body>
-
 </html>
