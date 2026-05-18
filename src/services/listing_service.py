@@ -24,6 +24,36 @@ class ListingService:
                         Listing.description.ilike(search)
                     )
                 )
+            if filters.get('quantity_min'):
+                query = query.filter(Listing.quantity >= filters['quantity_min'])
+            if filters.get('created_start'):
+                try:
+                    from datetime import datetime
+                    start_date = datetime.fromisoformat(filters['created_start'])
+                    query = query.filter(Listing.created_at >= start_date)
+                except ValueError:
+                    pass
+            if filters.get('created_end'):
+                try:
+                    from datetime import datetime
+                    end_date = datetime.fromisoformat(filters['created_end'] + 'T23:59:59')
+                    query = query.filter(Listing.created_at <= end_date)
+                except ValueError:
+                    pass
+            if filters.get('expires_start'):
+                try:
+                    from datetime import datetime
+                    start_date = datetime.fromisoformat(filters['expires_start'])
+                    query = query.filter(Listing.expires_at >= start_date)
+                except ValueError:
+                    pass
+            if filters.get('expires_end'):
+                try:
+                    from datetime import datetime
+                    end_date = datetime.fromisoformat(filters['expires_end'] + 'T23:59:59')
+                    query = query.filter(Listing.expires_at <= end_date)
+                except ValueError:
+                    pass
 
         query = query.order_by(Listing.created_at.desc())
         total = query.count()

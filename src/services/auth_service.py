@@ -1,6 +1,9 @@
+import secrets
+from datetime import datetime, timedelta
+from flask import current_app
 from flask_jwt_extended import create_access_token
 from src.extensions import bcrypt, db
-from src.models import User
+from src.models import User, PasswordReset
 from src.utils.validators import validate_email_format, validate_password
 
 
@@ -60,4 +63,95 @@ class AuthService:
         email = email.strip().lower()
         if not email:
             raise ValueError("Email is required")
+
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            return True
+
+        token = secrets.token_urlsafe(32)
+        expires_at = datetime.utcnow() + timedelta(hours=1)
+
+        password_reset = PasswordReset(
+            user_id=user.id,
+            token=token,
+            expires_at=expires_at
+        )
+        db.session.add(password_reset)
+        db.session.commit()
+
+        reset_url = f"/reset-password?token={token}"
+        reset_link = f"http://localhost:5000{reset_url}"
+
+        print(f"\n{'='*60}")
+        print(f"密碼重設連結 Password Reset Link:")
+        print(f"{'='*60}")
+        print(f"收件人: {email}")
+        print(f"連結: {reset_link}")
+        print(f"有效期限: 1 小時")
+        print(f"{'='*60}\n")
+
         return True
+
+    @staticmethod
+    def verify_reset_token(token: str):
+        password_reset = PasswordReset.query.filter_by(token=token, used=False).first()
+        if not password_reset:
+            raise ValueError("Invalid or expired token")
+
+        if password_reset.expires_at < datetime.utcnow():
+            raise ValueError("Token has expired")
+
+        return password_reset.user
+
+    @staticmethod
+    def reset_password_with_token(token: str, new_password: str):
+        user = AuthService.verify_reset_token(token)
+
+        valid, msg = validate_password(new_password)
+        if not valid:
+            raise ValueError(msg)
+
+        password_hash = bcrypt.generate_password_hash(new_password).decode("utf-8")
+        user.password_hash = password_hash
+
+        password_reset = PasswordReset.query.filter_by(token=token).first()
+        if password_reset:
+            password_reset.used = True
+
+        db.session.commit()
+        return user
+
+    @staticmethod
+    def update_profile(user_id: str, display_name: str = None, phone: str = None):
+        user = User.query.get(user_id)
+        if not user:
+            raise ValueError("User not found")
+
+        if display_name is not None:
+            user.display_name = display_name.strip() if display_name else None
+
+        if phone is not None:
+            user.phone = phone.strip() if phone else None
+
+        db.session.commit()
+        return user
+
+    @staticmethod
+    def update_password(user_id: str, current_password: str, new_password: str):
+        user = User.query.get(user_id)
+        if not user:
+            raise ValueError("User not found")
+
+        if not current_password:
+            raise ValueError("Current password is required")
+
+        if not bcrypt.check_password_hash(user.password_hash, current_password):
+            raise ValueError("Current password is incorrect")
+
+        valid, msg = validate_password(new_password)
+        if not valid:
+            raise ValueError(msg)
+
+        user.password_hash = bcrypt.generate_password_hash(new_password).decode("utf-8")
+        db.session.commit()
+        return user

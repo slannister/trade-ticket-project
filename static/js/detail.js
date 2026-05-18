@@ -62,6 +62,9 @@ function renderListing(listing) {
     const priceEl = root.querySelector('[data-price]');
     const contactEl = root.querySelector('[data-contact]');
     const tagsEl = root.querySelector('[data-tags]');
+    const ownerEl = root.querySelector('[data-owner]');
+    const createdEl = root.querySelector('[data-created]');
+    const imagesEl = root.querySelector('[data-images]');
 
     if (titleEl) titleEl.textContent = listing.title || '未命名票券';
     if (descriptionEl) descriptionEl.textContent = listing.description || '暫無補充資訊。';
@@ -82,8 +85,36 @@ function renderListing(listing) {
         }
     }
 
-    if (contactEl && listing.seller_contact) {
-        contactEl.textContent = listing.seller_contact;
+    if (contactEl && listing.owner) {
+        contactEl.textContent = listing.owner.email || '—';
+    }
+
+    if (ownerEl && listing.owner) {
+        ownerEl.textContent = listing.owner.display_name || listing.owner.email || '—';
+    }
+
+    if (createdEl && listing.created_at) {
+        createdEl.textContent = formatDateValue(listing.created_at);
+    }
+
+    const faceValueEl = root.querySelector('[data-face-value]');
+    if (faceValueEl && listing.face_value) {
+        faceValueEl.textContent = `NT$ ${Number(listing.face_value).toLocaleString()}`;
+    }
+
+    if (imagesEl) {
+        imagesEl.innerHTML = '';
+        const images = listing.images || [];
+        if (images.length > 0) {
+            images.forEach((img, index) => {
+                const imgEl = document.createElement('img');
+                imgEl.src = img.url || img;
+                imgEl.alt = `${listing.title} 圖片 ${index + 1}`;
+                imgEl.loading = 'lazy';
+                if (index === 0) imgEl.className = 'detail-image-main';
+                imagesEl.appendChild(imgEl);
+            });
+        }
     }
 
     if (tagsEl) {

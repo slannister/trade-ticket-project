@@ -35,6 +35,30 @@ def create_app(config_class=Config):
     def detail():
         return render_template("detail.html")
 
+    @app.route("/reset-password")
+    def reset_password_page():
+        return render_template("reset_password.html")
+
+    @app.route("/reset-password", methods=["POST"])
+    def reset_password_confirm():
+        from flask import request
+        from src.services import AuthService
+        from src.utils.responses import success, error
+
+        data = request.get_json() or {}
+        try:
+            user = AuthService.reset_password_with_token(
+                token=data.get("token", ""),
+                new_password=data.get("new_password", "")
+            )
+            return success({"user": user.to_dict()}, "Password has been reset")
+        except ValueError as e:
+            return error(str(e), 400)
+
+    @app.route("/profile")
+    def profile_page():
+        return render_template("profile.html")
+
     with app.app_context():
         db.create_all()
 

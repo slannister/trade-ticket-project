@@ -67,7 +67,12 @@ class Listing(db.Model):
             "urgency": self.urgency,
             "images": self.images or [],
             "owner_id": self.owner_id,
-            "created_at": self.created_at.isoformat() if self.created_at else None
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "owner": {
+                "id": self.owner.id,
+                "display_name": self.owner.display_name or self.owner.email,
+                "email": self.owner.email
+            } if self.owner else None
         }
 
 
@@ -88,7 +93,14 @@ class Inquiry(db.Model):
             "sender_id": self.sender_id,
             "sender_contact": self.sender_contact,
             "message": self.message,
-            "created_at": self.created_at.isoformat() if self.created_at else None
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "listing": {
+                "id": self.listing.id,
+                "title": self.listing.title,
+                "category": self.listing.category,
+                "type": self.listing.type,
+                "images": self.listing.images or []
+            } if self.listing else None
         }
 
 
@@ -111,3 +123,16 @@ class Favorite(db.Model):
             "listing_id": self.listing_id,
             "created_at": self.created_at.isoformat() if self.created_at else None
         }
+
+
+class PasswordReset(db.Model):
+    __tablename__ = "password_resets"
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    user_id = db.Column(db.String(36), db.ForeignKey("users.id"), nullable=False)
+    token = db.Column(db.String(64), unique=True, nullable=False, index=True)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    used = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    user = db.relationship("User", backref="password_resets")

@@ -21,12 +21,13 @@ def error(message="An error occurred", status_code=400, code=None):
 
 
 def paginated(items, total, page, per_page):
+    total_int = int(total) if total else 0
     return {
         "items": items,
-        "total": total,
+        "total": total_int,
         "page": page,
         "per_page": per_page,
-        "pages": (total + per_page - 1) // per_page
+        "pages": (total_int + per_page - 1) // per_page if per_page > 0 else 0
     }
 
 
