@@ -55,5 +55,10 @@ export function buildQueryParams() {
     if (activeFilters.category !== 'all') params.category = activeFilters.category;
     if (activeFilters.delivery !== 'all') params.delivery = activeFilters.delivery;
     if (activeFilters.search) params.search = activeFilters.search;
+    if (activeFilters.quantityMin) params.quantity_min = activeFilters.quantityMin;
+    if (activeFilters.createdStart) params.created_start = activeFilters.createdStart;
+    if (activeFilters.createdEnd) params.created_end = activeFilters.createdEnd;
+    if (activeFilters.expiresStart) params.expires_start = activeFilters.expiresStart;
+    if (activeFilters.expiresEnd) params.expires_end = activeFilters.expiresEnd;
     return params;
 }

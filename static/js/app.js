@@ -1,6 +1,7 @@
 import { init as initAuth, handleLogin, handleRegister, handleLogout, getCurrentUser, requireAuth } from './modules/auth.js';
-import { loadListings, loadMyListings, createListing, updateListing, deleteListing } from './modules/listings.js';
+import { loadListings, loadMyListings, createListing, updateListing, deleteListing, uploadImage } from './modules/listings.js';
 import { init as initFavorites, isFavorite, toggle as toggleFavoriteLocal, syncFromServer, addFavorite, removeFavorite } from './modules/favorites.js';
+import { init as initChat } from './modules/chat.js';
 import { getFilters, setFilter, resetFilters, buildQueryParams } from './modules/filters.js';
 import { getPagination, setPagination, nextPage, prevPage, resetPage } from './modules/pagination.js';
 import { showToast, query, queryAll, createElement, removeChildren, show, hide } from './utils/dom.js';
@@ -29,8 +30,10 @@ let editingListingId = null;
 document.addEventListener('DOMContentLoaded', async () => {
     initAuth(handleAuthChange);
     initFavorites();
+    initChat(loadMessagesView);
     initThemeToggle();
     initMemberModal();
+    initImageModal();
     bindEvents();
     await loadInitialData();
 });
@@ -64,10 +67,12 @@ function initMemberModal() {
         btn.addEventListener('click', () => {
             const user = getCurrentUser();
             if (user) {
-                // If already logged in, show account menu or logout
+                // If already logged in, show account menu
                 const accountMenu = query('[data-account-menu]');
                 if (accountMenu) {
-                    accountMenu.hidden = !accountMenu.hidden;
+                    const isHidden = accountMenu.hidden || !accountMenu.classList.contains('is-open');
+                    accountMenu.hidden = false;
+                    accountMenu.classList.toggle('is-open', isHidden);
                 }
                 return;
             }
@@ -134,6 +139,25 @@ function initMemberModal() {
         });
     }
 
+    // Reset password form
+    const resetForm = query('#member-reset-form');
+    if (resetForm) {
+        resetForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = query('#member-reset-form input[name="email"]').value;
+            try {
+                const { resetPassword } = await import('./api/auth.js');
+                await resetPassword(email);
+                showMemberMessage('如果這個 Email 存在，會收到密碼重設連結', 'success');
+                setTimeout(() => {
+                    switchMemberView('login');
+                }, 2000);
+            } catch (err) {
+                showMemberMessage(err.message || '傳送失敗', 'error');
+            }
+        });
+    }
+
     // Logout
     queryAll('[data-account-logout], [data-member-logout]').forEach(btn => {
         btn.addEventListener('click', async () => {
@@ -164,10 +188,81 @@ function initMemberModal() {
 
     // Close on Escape
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && !modal.getAttribute('aria-hidden') !== 'true') {
+        if (e.key === 'Escape' && modal.getAttribute('aria-hidden') === 'false') {
             closeMemberModal();
         }
     });
+}
+
+/* ── Image Modal ── */
+let imageModalCurrentIndex = 0;
+let imageModalImages = [];
+
+function initImageModal() {
+    const modal = query('#image-modal');
+    if (!modal) return;
+
+    const backdrop = modal.querySelector('.image-modal-backdrop');
+    const closeBtn = modal.querySelector('.image-modal-close');
+    const prevBtn = modal.querySelector('.image-modal-prev');
+    const nextBtn = modal.querySelector('.image-modal-next');
+
+    backdrop?.addEventListener('click', closeImageModal);
+    closeBtn?.addEventListener('click', closeImageModal);
+    prevBtn?.addEventListener('click', () => navigateImage(-1));
+    nextBtn?.addEventListener('click', () => navigateImage(1));
+
+    document.addEventListener('keydown', (e) => {
+        if (modal.getAttribute('aria-hidden') === 'true') return;
+        if (e.key === 'Escape') closeImageModal();
+        if (e.key === 'ArrowLeft') navigateImage(-1);
+        if (e.key === 'ArrowRight') navigateImage(1);
+    });
+}
+
+function openImageModal(images, startIndex = 0) {
+    const modal = query('#image-modal');
+    if (!modal || !images || images.length === 0) return;
+
+    imageModalImages = images;
+    imageModalCurrentIndex = startIndex;
+
+    modal.setAttribute('aria-hidden', 'false');
+    updateImageModalContent();
+}
+
+function closeImageModal() {
+    const modal = query('#image-modal');
+    if (modal) {
+        modal.setAttribute('aria-hidden', 'true');
+    }
+}
+
+function navigateImage(direction) {
+    imageModalCurrentIndex += direction;
+    if (imageModalCurrentIndex < 0) {
+        imageModalCurrentIndex = imageModalImages.length - 1;
+    } else if (imageModalCurrentIndex >= imageModalImages.length) {
+        imageModalCurrentIndex = 0;
+    }
+    updateImageModalContent();
+}
+
+function updateImageModalContent() {
+    const modal = query('#image-modal');
+    if (!modal) return;
+
+    const img = modal.querySelector('.image-modal-image');
+    const counter = modal.querySelector('.image-modal-counter');
+
+    if (img && imageModalImages[imageModalCurrentIndex]) {
+        const imgData = imageModalImages[imageModalCurrentIndex];
+        img.src = imgData.url || imgData;
+    }
+
+    if (counter) {
+        counter.textContent = `${imageModalCurrentIndex + 1} / ${imageModalImages.length}`;
+    }
 }
 
 function openMemberModal() {
@@ -264,7 +359,8 @@ async function loadListingsView(params = {}) {
         // client.js auto-unwraps Flask's { success, data } wrapper
         listings = data.listings || [];
         const paginationData = data.pagination || {};
-        setPagination(pagination.currentPage, paginationData.total || listings.length);
+        const totalItems = paginationData.total || 0;
+        setPagination(pagination.currentPage, totalItems);
         renderListings();
         updatePaginationUI();
     } catch (error) {
@@ -322,11 +418,14 @@ function createListingCard(listing) {
     const background = getCategoryBackground(listing.category);
     const user = getCurrentUser();
     const isOwner = user && listing.owner_id === user.id;
+    const isFav = !isOwner && isFavorite(listing.id);
+
+    const imagesDataAttr = images.length > 1 ? ` data-gallery-trigger data-images='${btoa(JSON.stringify(images))}'` : '';
 
     card.innerHTML = `
         <div class="listing-card-media" style="background: ${background}">
             ${images.length > 0
-            ? `<img src="${images[0].url || images[0]}" alt="${listing.title}" loading="lazy" />`
+            ? `<img src="${images[0].url || images[0]}" alt="${listing.title}" loading="lazy"${imagesDataAttr} />`
             : `<span class="listing-card-fallback">${(listing.category || listing.title || '票').charAt(0).toUpperCase()}</span>`}
         </div>
         <div class="listing-card-body">
@@ -339,7 +438,8 @@ function createListingCard(listing) {
                         <button class="owner-menu-item listing-card-edit" type="button" role="menuitem">編輯</button>
                         <button class="owner-menu-item listing-card-delete" type="button" role="menuitem">刪除</button>
                     </div>
-                </div>` : ''}
+                </div>` : `
+                <button class="listing-card-favorite${isFav ? ' is-active' : ''}" type="button" aria-pressed="${isFav}" aria-label="${isFav ? '移除最愛' : '加入最愛'}"></button>`}
             </div>
             <p class="listing-card-meta">
                 ${listing.type ? `<span>${LISTING_TYPES[listing.type] || listing.type}</span>` : ''}
@@ -372,6 +472,43 @@ function createListingCard(listing) {
         e.stopPropagation();
         window.location.href = `/detail?id=${listing.id}`;
     });
+
+    // Favorite button handler
+    const favBtn = card.querySelector('.listing-card-favorite');
+    if (favBtn) {
+        favBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            if (!requireAuth('請先登入才能收藏')) {
+                openMemberModal();
+                return;
+            }
+            try {
+                const added = await toggleFavoriteLocal(listing.id);
+                favBtn.classList.toggle('is-active', added);
+                favBtn.setAttribute('aria-pressed', added);
+                showToast(added ? '已加入我的最愛' : '已移除我的最愛', 'success');
+            } catch (err) {
+                showToast('操作失敗', 'error');
+            }
+        });
+    }
+
+    // Gallery trigger for multi-image cards
+    const galleryTrigger = card.querySelector('[data-gallery-trigger]');
+    if (galleryTrigger && images.length > 1) {
+        galleryTrigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const storedImages = galleryTrigger.dataset.images;
+            if (storedImages) {
+                try {
+                    const imgs = JSON.parse(atob(storedImages));
+                    openImageModal(imgs, 0);
+                } catch (err) {
+                    window.location.href = `/detail?id=${listing.id}`;
+                }
+            }
+        });
+    }
 
     // Owner actions
     if (isOwner) {
@@ -502,6 +639,50 @@ function bindEvents() {
         });
     }
 
+    // Range Filters
+    const filterQuantityMin = query('#filter-quantity-min');
+    if (filterQuantityMin) {
+        filterQuantityMin.addEventListener('input', () => {
+            setFilter('quantityMin', filterQuantityMin.value ? parseInt(filterQuantityMin.value, 10) : null);
+            resetPage();
+            loadListingsView();
+        });
+    }
+
+    const filterCreatedStart = query('#filter-created-start');
+    const filterCreatedEnd = query('#filter-created-end');
+    if (filterCreatedStart) {
+        filterCreatedStart.addEventListener('change', () => {
+            setFilter('createdStart', filterCreatedStart.value);
+            resetPage();
+            loadListingsView();
+        });
+    }
+    if (filterCreatedEnd) {
+        filterCreatedEnd.addEventListener('change', () => {
+            setFilter('createdEnd', filterCreatedEnd.value);
+            resetPage();
+            loadListingsView();
+        });
+    }
+
+    const filterExpiresStart = query('#filter-expires-start');
+    const filterExpiresEnd = query('#filter-expires-end');
+    if (filterExpiresStart) {
+        filterExpiresStart.addEventListener('change', () => {
+            setFilter('expiresStart', filterExpiresStart.value);
+            resetPage();
+            loadListingsView();
+        });
+    }
+    if (filterExpiresEnd) {
+        filterExpiresEnd.addEventListener('change', () => {
+            setFilter('expiresEnd', filterExpiresEnd.value);
+            resetPage();
+            loadListingsView();
+        });
+    }
+
     // Sidebar navigation
     const sidebarButtons = queryAll('.sidebar-nav button[data-category]');
     sidebarButtons.forEach(btn => {
@@ -537,11 +718,15 @@ function bindEvents() {
             hide(messagesPanel);
 
             if (activeCategory === 'my-listings') {
+                resetFilters();
+                resetPage();
                 loadMyListingsView();
                 return;
             }
 
             if (activeCategory === 'favorites') {
+                resetFilters();
+                resetPage();
                 loadFavoritesView();
                 return;
             }
@@ -638,14 +823,24 @@ async function loadMessagesView() {
         }
 
         messages.forEach(msg => {
-            const card = createElement('div', { className: 'message-card' });
+            const card = createElement('div', { className: 'message-item' });
+            const listingInfo = msg.listing ? `<a href="/detail?id=${msg.listing.id}" class="message-listing-link">${msg.listing.title}</a>` : '';
             card.innerHTML = `
                 <div class="message-header">
                     <span class="message-sender">${msg.sender_contact || '匿名'}</span>
-                    <span class="message-date">${formatDateTimeValue(msg.created_at)}</span>
+                    <span class="message-time">${formatDateTimeValue(msg.created_at)}</span>
                 </div>
+                ${listingInfo ? `<div class="message-listing">${listingInfo}</div>` : ''}
                 <p class="message-body">${msg.message}</p>
+                <button class="message-reply-btn" type="button">回覆</button>
             `;
+            card.addEventListener('click', (e) => {
+                if (e.target.matches('.message-reply-btn') || e.target.closest('.message-reply-btn')) {
+                    import('./modules/chat.js').then(({ openChat }) => {
+                        openChat(msg);
+                    });
+                }
+            });
             container.appendChild(card);
         });
     } catch (error) {
@@ -681,6 +876,27 @@ async function handleFormSubmit(e) {
     // Parse numbers
     if (data.quantity) data.quantity = parseInt(data.quantity, 10);
     if (data.buy_now) data.buy_now = parseFloat(data.buy_now);
+
+    // Handle image uploads
+    const imageInput = e.target.querySelector('input[name="listing-images"]');
+    if (imageInput && imageInput.files && imageInput.files.length > 0) {
+        const maxImages = 6;
+        const files = Array.from(imageInput.files).slice(0, maxImages);
+        const uploadedImages = [];
+
+        for (const file of files) {
+            try {
+                const result = await uploadImage(file);
+                uploadedImages.push({ url: result.url, filename: result.filename });
+            } catch (err) {
+                console.error('Image upload failed:', err);
+            }
+        }
+
+        if (uploadedImages.length > 0) {
+            data.images = uploadedImages;
+        }
+    }
 
     try {
         if (editingListingId) {

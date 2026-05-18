@@ -10,7 +10,15 @@ inquiries_bp = Blueprint("inquiries", __name__)
 @jwt_required()
 def get_inquiries():
     user_id = get_jwt_identity()
-    inquiries = InquiryService.get_by_owner(user_id)
+    inquiries = InquiryService.get_all_for_user(user_id)
+    return success({"inquiries": [i.to_dict() for i in inquiries]})
+
+
+@inquiries_bp.route("/sent", methods=["GET"])
+@jwt_required()
+def get_sent_inquiries():
+    user_id = get_jwt_identity()
+    inquiries = InquiryService.get_by_sender(user_id)
     return success({"inquiries": [i.to_dict() for i in inquiries]})
 
 
@@ -32,7 +40,7 @@ def create_inquiry():
             if user:
                 sender_contact = user.email
     except Exception:
-        pass
+        pass  # User is guest, use default sender_contact
 
     try:
         inquiry = InquiryService.create(

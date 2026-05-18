@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>會員資料 - TikSwap</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+</head>
+<body class="detail-page" data-theme="dark">
+  <header class="detail-topbar">
+    <a class="detail-back" href="/">← 返回列表</a>
+    <button id="theme-toggle" class="ghost-button theme-toggle" type="button" aria-label="切換為亮色模式"></button>
+  </header>
+  <main class="detail-shell">
+    <section class="detail-card">
+      <div class="detail-content">
+        <div class="detail-header">
+          <h1>會員資料</h1>
+        </div>
+
+        <form id="profile-form" class="profile-form">
+          <div class="field">
+            <label for="profile-email">電子郵件</label>
+            <input type="email" id="profile-email" name="email" disabled />
+          </div>
+          <div class="field">
+            <label for="profile-display-name">顯示名稱</label>
+            <input type="text" id="profile-display-name" name="display_name" placeholder="你的顯示名稱" />
+          </div>
+          <div class="field">
+            <label for="profile-phone">電話號碼（選填）</label>
+            <input type="tel" id="profile-phone" name="phone" placeholder="0912345678" />
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="primary">儲存修改</button>
+          </div>
+        </form>
+
+        <div id="profile-message" class="member-message" hidden></div>
+      </div>
+    </section>
+
+    <section class="detail-card">
+      <div class="detail-content">
+        <div class="detail-header">
+          <h2>修改密碼</h2>
+        </div>
+
+        <form id="password-form" class="profile-form">
+          <div class="field">
+            <label for="current-password">目前密碼</label>
+            <input type="password" id="current-password" name="current_password" required />
+          </div>
+          <div class="field">
+            <label for="new-password">新密碼</label>
+            <input type="password" id="new-password" name="new_password" placeholder="至少 6 碼" required />
+          </div>
+          <div class="field">
+            <label for="confirm-password">確認新密碼</label>
+            <input type="password" id="confirm-password" name="confirm_password" placeholder="再次輸入新密碼" required />
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="primary">更新密碼</button>
+          </div>
+        </form>
+
+        <div id="password-message" class="member-message" hidden></div>
+      </div>
+    </section>
+  </main>
+  <div id="toast-root" class="toast-root"></div>
+  <script type="module">
+    import * as authApi from '/static/js/api/auth.js';
+    import { showToast } from '/static/js/utils/dom.js';
+
+    const profileForm = document.getElementById('profile-form');
+    const passwordForm = document.getElementById('password-form');
+    const profileMessage = document.getElementById('profile-message');
+    const passwordMessage = document.getElementById('password-message');
+
+    async function loadProfile() {
+      try {
+        const data = await authApi.getMe();
+        const user = data.user;
+        document.getElementById('profile-email').value = user.email || '';
+        document.getElementById('profile-display-name').value = user.display_name || '';
+        document.getElementById('profile-phone').value = user.phone || '';
+      } catch (err) {
+        showToast('載入會員資料失敗', 'error');
+      }
+    }
+
+    profileForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      profileMessage.hidden = true;
+
+      const displayName = document.getElementById('profile-display-name').value;
+      const phone = document.getElementById('profile-phone').value;
+
+      try {
+        const data = await authApi.updateProfile({ display_name: displayName, phone });
+        showToast('會員資料已更新', 'success');
+        profileForm.reset();
+        await loadProfile();
+      } catch (err) {
+        profileMessage.textContent = err.message || '更新失敗';
+        profileMessage.className = 'member-message member-message-error';
+        profileMessage.hidden = false;
+      }
+    });
+
+    passwordForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      passwordMessage.hidden = true;
+
+      const currentPassword = document.getElementById('current-password').value;
+      const newPassword = document.getElementById('new-password').value;
+      const confirmPassword = document.getElementById('confirm-password').value;
+
+      if (newPassword !== confirmPassword) {
+        passwordMessage.textContent = '兩次輸入的密碼不一致';
+        passwordMessage.className = 'member-message member-message-error';
+        passwordMessage.hidden = false;
+        return;
+      }
+
+      try {
+        await authApi.updatePassword(currentPassword, newPassword);
+        showToast('密碼已更新', 'success');
+        passwordForm.reset();
+      } catch (err) {
+        passwordMessage.textContent = err.message || '更新失敗';
+        passwordMessage.className = 'member-message member-message-error';
+        passwordMessage.hidden = false;
+      }
+    });
+
+    // Theme toggle
+    const toggle = document.getElementById('theme-toggle');
+    if (toggle) {
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      document.body.setAttribute('data-theme', savedTheme);
+      toggle.addEventListener('click', () => {
+        const current = document.body.getAttribute('data-theme');
+        const next = current === 'dark' ? 'light' : 'dark';
+        document.body.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+      });
+    }
+
+    loadProfile();
+  </script>
+</body>
+</html>

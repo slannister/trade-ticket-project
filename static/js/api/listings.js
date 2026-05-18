@@ -40,5 +40,5 @@ export async function uploadImage(file) {
     if (!response.ok) {
         throw new Error(data.error || 'Upload failed');
     }
-    return data;
+    return data.data || data;
 }

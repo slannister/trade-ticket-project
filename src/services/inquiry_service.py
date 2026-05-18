@@ -11,6 +11,23 @@ class InquiryService:
         ).order_by(Inquiry.created_at.desc()).all()
 
     @staticmethod
+    def get_by_sender(sender_id: str):
+        return Inquiry.query.filter(
+            Inquiry.sender_id == sender_id
+        ).order_by(Inquiry.created_at.desc()).all()
+
+    @staticmethod
+    def get_all_for_user(user_id: str):
+        owned = Inquiry.query.join(Listing).filter(
+            Listing.owner_id == user_id
+        )
+        sent = Inquiry.query.filter(
+            Inquiry.sender_id == user_id
+        )
+        combined = owned.union(sent)
+        return combined.order_by(Inquiry.created_at.desc()).all()
+
+    @staticmethod
     def create(listing_id: str, message: str, sender_id: str = None, sender_contact: str = "Guest"):
         if not message:
             raise ValueError("Message is required")

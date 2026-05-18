@@ -16,15 +16,24 @@ export function isFavorite(listingId) {
     return favorites.has(listingId.toString());
 }
 
-export function toggle(listingId) {
+export async function toggle(listingId) {
     const key = listingId.toString();
-    if (favorites.has(key)) {
-        favorites.delete(key);
-    } else {
-        favorites.add(key);
+    const wasFavorite = favorites.has(key);
+
+    try {
+        if (wasFavorite) {
+            await apiClient.delete(`/favorites/${listingId}`);
+            favorites.delete(key);
+        } else {
+            await apiClient.post(`/favorites/${listingId}`);
+            favorites.add(key);
+        }
+        save();
+        return !wasFavorite;
+    } catch (e) {
+        console.error('Favorite toggle failed:', e);
+        throw e;
     }
-    save();
-    return favorites.has(key);
 }
 
 function save() {

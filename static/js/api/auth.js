@@ -36,6 +36,25 @@ export async function resetPassword(email) {
     return apiClient.post('/auth/password/reset', { email });
 }
 
+export async function resetPasswordConfirm(token, newPassword) {
+    return apiClient.post('/auth/password/reset/confirm', { token, new_password: newPassword });
+}
+
+export async function verifyResetToken(token) {
+    return apiClient.post('/auth/password/reset/verify', { token });
+}
+
+export async function updateProfile(data) {
+    return apiClient.put('/auth/profile', data);
+}
+
+export async function updatePassword(currentPassword, newPassword) {
+    return apiClient.put('/auth/profile/password', {
+        current_password: currentPassword,
+        new_password: newPassword
+    });
+}
+
 export function getCurrentUser() {
     return JSON.parse(localStorage.getItem('auth_user') || 'null');
 }

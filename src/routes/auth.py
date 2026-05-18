@@ -59,7 +59,62 @@ def reset_password():
         return error(str(e), 400)
 
 
+@auth_bp.route("/password/reset/verify", methods=["POST"])
+def verify_reset_token():
+    data = request.get_json() or {}
+    try:
+        user = AuthService.verify_reset_token(data.get("token", ""))
+        return success({"valid": True}, "Token is valid")
+    except ValueError as e:
+        return error(str(e), 400)
+
+
+@auth_bp.route("/password/reset/confirm", methods=["POST"])
+def reset_password_with_token():
+    data = request.get_json() or {}
+    try:
+        user = AuthService.reset_password_with_token(
+            token=data.get("token", ""),
+            new_password=data.get("new_password", "")
+        )
+        return success({"user": user.to_dict()}, "Password has been reset")
+    except ValueError as e:
+        return error(str(e), 400)
+
+
 @auth_bp.route("/logout", methods=["POST"])
 @jwt_required()
 def logout():
     return success(message="Logged out successfully")
+
+
+@auth_bp.route("/profile", methods=["PUT"])
+@jwt_required()
+def update_profile():
+    user_id = get_jwt_identity()
+    data = request.get_json() or {}
+    try:
+        user = AuthService.update_profile(
+            user_id=user_id,
+            display_name=data.get("display_name"),
+            phone=data.get("phone")
+        )
+        return success({"user": user.to_dict()}, "Profile updated")
+    except ValueError as e:
+        return error(str(e), 400)
+
+
+@auth_bp.route("/profile/password", methods=["PUT"])
+@jwt_required()
+def update_password():
+    user_id = get_jwt_identity()
+    data = request.get_json() or {}
+    try:
+        user = AuthService.update_password(
+            user_id=user_id,
+            current_password=data.get("current_password", ""),
+            new_password=data.get("new_password", "")
+        )
+        return success({"user": user.to_dict()}, "Password updated")
+    except ValueError as e:
+        return error(str(e), 400)
