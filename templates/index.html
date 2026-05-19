@@ -61,6 +61,7 @@
         <button aria-pressed="false" class="sidebar-personal" data-category="messages" type="button">
           <span aria-hidden="true" class="nav-indicator"></span>
           <span>我的訊息</span>
+          <span class="sidebar-badge" id="messages-badge" hidden>0</span>
         </button>
       </nav>
       <div class="sidebar-footer">建議回饋：matsuri.tsai@gmail.com</div>
@@ -68,6 +69,7 @@
     <div class="app-main">
       <header class="app-topbar">
         <div class="topbar-actions">
+          <button class="ghost-button lang-toggle" id="lang-toggle" type="button" aria-label="Switch Language">EN</button>
           <button class="ghost-button theme-toggle" id="theme-toggle" type="button" aria-label="切換為亮色模式"></button>
           <div class="account-control" data-account-control>
             <button class="ghost-button login-button member-trigger" type="button" data-member-trigger

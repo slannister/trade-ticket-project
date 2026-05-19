@@ -44,6 +44,7 @@ class Listing(db.Model):
     description = db.Column(db.Text)
     urgency = db.Column(db.String(20), default="normal")
     images = db.Column(db.JSON, default=list)
+    status = db.Column(db.String(20), default="active")  # active, sold, closed
     owner_id = db.Column(db.String(36), db.ForeignKey("users.id"), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -66,6 +67,7 @@ class Listing(db.Model):
             "description": self.description,
             "urgency": self.urgency,
             "images": self.images or [],
+            "status": self.status or "active",
             "owner_id": self.owner_id,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "owner": {
@@ -84,7 +86,11 @@ class Inquiry(db.Model):
     sender_id = db.Column(db.String(36), db.ForeignKey("users.id"), nullable=True)
     sender_contact = db.Column(db.String(255), nullable=False)
     message = db.Column(db.Text, nullable=False)
+    parent_id = db.Column(db.String(36), db.ForeignKey("inquiries.id"), nullable=True)
+    read = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    replies = db.relationship("Inquiry", backref=db.backref("parent", remote_side=[id]), lazy="dynamic")
 
     def to_dict(self):
         return {
@@ -93,6 +99,8 @@ class Inquiry(db.Model):
             "sender_id": self.sender_id,
             "sender_contact": self.sender_contact,
             "message": self.message,
+            "parent_id": self.parent_id,
+            "read": self.read,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "listing": {
                 "id": self.listing.id,

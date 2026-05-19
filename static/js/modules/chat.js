@@ -7,11 +7,46 @@ let chatPanel = null;
 let currentConversation = null;
 let chatMessages = [];
 let onMessageSent = null;
+let refreshInterval = null;
+let badgeInterval = null;
+const REFRESH_INTERVAL = 5000; // Refresh every 5 seconds
+const BADGE_INTERVAL = 3000; // Check unread every 3 seconds
 
 export function init(onSentCallback) {
     onMessageSent = onSentCallback;
     createChatPanel();
     attachChatListeners();
+    startBadgePoll();
+}
+
+function startBadgePoll() {
+    updateUnreadBadge();
+    badgeInterval = setInterval(updateUnreadBadge, BADGE_INTERVAL);
+}
+
+function stopBadgePoll() {
+    if (badgeInterval) {
+        clearInterval(badgeInterval);
+        badgeInterval = null;
+    }
+}
+
+async function updateUnreadBadge() {
+    const badge = query('#messages-badge');
+    if (!badge) return;
+
+    try {
+        const data = await inquiriesApi.getUnreadCount();
+        const count = data?.count || 0;
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.hidden = false;
+        } else {
+            badge.hidden = true;
+        }
+    } catch (err) {
+        // Silently fail
+    }
 }
 
 function createChatPanel() {
@@ -52,7 +87,7 @@ function attachChatListeners() {
     });
 }
 
-export function openChat(inquiry) {
+export async function openChat(inquiry) {
     if (!inquiry || !inquiry.listing) {
         showToast('無法開啟對話', 'error');
         return;
@@ -71,7 +106,15 @@ export function openChat(inquiry) {
     currentConversation = inquiry;
     currentConversation._isOwner = isOwner;
     currentConversation._isSender = isSender;
-    chatMessages = [inquiry];
+
+    // Always reload replies to get latest messages
+    try {
+        const result = await inquiriesApi.getReplies(inquiry.id);
+        const replies = result && result.inquiries ? result.inquiries : [];
+        chatMessages = [inquiry, ...replies];
+    } catch (err) {
+        chatMessages = [inquiry];
+    }
 
     const headerTitle = query('.chat-panel-listing-title');
     if (headerTitle) {
@@ -79,9 +122,16 @@ export function openChat(inquiry) {
     }
 
     renderChatMessages();
+    updateUnreadBadge(); // Refresh badge after opening chat
+
+    // Mark as read when opening chat (whether owner viewing inquiry or sender viewing replies)
+    if (currentConversation) {
+        inquiriesApi.markAsRead(currentConversation.id).catch(() => {});
+    }
 
     chatPanel.hidden = false;
     chatPanel.classList.add('is-open');
+    startAutoRefresh();
 
     const chatInput = query('.chat-input');
     if (chatInput) {
@@ -95,6 +145,36 @@ export function closeChat() {
         chatPanel.classList.remove('is-open');
     }
     currentConversation = null;
+    stopAutoRefresh();
+    // Refresh badge count after closing chat
+    updateUnreadBadge();
+}
+
+export async function refreshMessages() {
+    if (!currentConversation) return;
+    try {
+        const result = await inquiriesApi.getReplies(currentConversation.id);
+        const replies = result && result.inquiries ? result.inquiries : [];
+        const newMessages = [currentConversation, ...replies];
+        if (newMessages.length !== chatMessages.length) {
+            chatMessages = newMessages;
+            renderChatMessages();
+        }
+    } catch (err) {
+        // Silently fail on refresh errors
+    }
+}
+
+function startAutoRefresh() {
+    stopAutoRefresh();
+    refreshInterval = setInterval(refreshMessages, REFRESH_INTERVAL);
+}
+
+function stopAutoRefresh() {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+    }
 }
 
 export async function sendChatMessage() {
@@ -104,18 +184,24 @@ export async function sendChatMessage() {
     if (!message || !currentConversation) return;
 
     try {
-        await inquiriesApi.createInquiry(
-            currentConversation.listing_id,
-            message,
-            currentConversation.sender_contact || 'Guest'
+        const result = await inquiriesApi.replyInquiry(
+            currentConversation.id,
+            message
         );
 
+        const reply = result?.reply || result;
+        if (reply) {
+            chatMessages.push(reply);
+        }
         input.value = '';
         showToast('訊息已發送', 'success');
+        renderChatMessages();
 
         if (onMessageSent) {
             onMessageSent();
         }
+        // Refresh to get latest messages
+        await refreshMessages();
     } catch (err) {
         showToast(err.message || '發送失敗', 'error');
     }
@@ -129,7 +215,6 @@ function renderChatMessages() {
 
     const listing = currentConversation.listing;
     const currentUser = getCurrentUser();
-    const isOwn = currentUser && currentConversation.sender_id === currentUser.id;
 
     // Header with listing info
     const headerEl = createElement('div', { className: 'chat-conversation-header' });
@@ -141,16 +226,19 @@ function renderChatMessages() {
     container.appendChild(headerEl);
 
     // Messages
-    const msgEl = createElement('div', { className: 'chat-message' });
-    msgEl.classList.add(isOwn ? 'chat-message-own' : 'chat-message-other');
-    msgEl.innerHTML = `
-        <div class="chat-bubble">${escapeHtml(currentConversation.message)}</div>
-        <div class="chat-meta">
-            <span class="chat-sender">${currentConversation.sender_contact || '匿名'}</span>
-            <span class="chat-time">${formatDateTimeValue(currentConversation.created_at)}</span>
-        </div>
-    `;
-    container.appendChild(msgEl);
+    chatMessages.forEach((msg) => {
+        const isOwn = currentUser && msg.sender_id === currentUser.id;
+        const msgEl = createElement('div', { className: 'chat-message' });
+        msgEl.classList.add(isOwn ? 'chat-message-own' : 'chat-message-other');
+        msgEl.innerHTML = `
+            <div class="chat-bubble">${escapeHtml(msg.message)}</div>
+            <div class="chat-meta">
+                <span class="chat-sender">${msg.sender_contact || '匿名'}</span>
+                <span class="chat-time">${formatDateTimeValue(msg.created_at)}</span>
+            </div>
+        `;
+        container.appendChild(msgEl);
+    });
 
     // Scroll to bottom
     container.scrollTop = container.scrollHeight;

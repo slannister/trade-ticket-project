@@ -211,6 +211,16 @@ body[data-theme='light'] .sidebar-nav button:hover .nav-indicator {
   font-weight: 600;
 }
 
+.sidebar-badge {
+  background: #e53935;
+  color: #fff;
+  border-radius: 999px;
+  padding: 0.1rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-left: auto;
+}
+
 .sidebar-footer {
   margin-top: auto;
   font-size: 0.75rem;
@@ -1419,6 +1429,24 @@ body[data-theme='light'] .filter-search-tag {
   gap: 0.5rem;
   flex-wrap: wrap;
   z-index: 3;
+}
+
+.listing-card-sold-badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-15deg);
+  background: #e53935;
+  color: #fff;
+  padding: 0.5rem 2rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  z-index: 4;
+  pointer-events: none;
 }
 
 .listing-card-gallery {

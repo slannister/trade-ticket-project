@@ -20,6 +20,10 @@ export async function deleteListing(id) {
     return apiClient.delete(`/listings/${id}`);
 }
 
+export async function updateListingStatus(id, status) {
+    return apiClient.put(`/listings/${id}/status`, { status });
+}
+
 export async function getMyListings() {
     return apiClient.get('/listings/mine');
 }
