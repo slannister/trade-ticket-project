@@ -19,3 +19,11 @@ export async function replyInquiry(parentId, message) {
 export async function getReplies(inquiryId) {
     return apiClient.get(`/inquiries/${inquiryId}/replies`);
 }
+
+export async function getUnreadCount() {
+    return apiClient.get('/inquiries/unread-count');
+}
+
+export async function markAsRead(inquiryId) {
+    return apiClient.put(`/inquiries/${inquiryId}/read`, {});
+}

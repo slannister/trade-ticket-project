@@ -80,3 +80,61 @@ class InquiryService:
         db.session.add(reply)
         db.session.commit()
         return reply
+
+    @staticmethod
+    def mark_as_read(inquiry_id: str, user_id: str):
+        inquiry = Inquiry.query.get(inquiry_id)
+        if not inquiry:
+            raise ValueError("Inquiry not found")
+
+        # User can mark as read if:
+        # 1. They own the listing, OR
+        # 2. They sent the original inquiry
+        from src.models import Listing
+        listing = Listing.query.get(inquiry.listing_id)
+        is_owner = listing and listing.owner_id == user_id
+        is_sender = inquiry.sender_id == user_id
+
+        if not is_owner and not is_sender:
+            raise ValueError("Access denied")
+
+        # Mark the inquiry itself as read
+        inquiry.read = True
+
+        # Also mark all replies to this inquiry as read
+        replies = Inquiry.query.filter(Inquiry.parent_id == inquiry_id).all()
+        for reply in replies:
+            reply.read = True
+
+        db.session.commit()
+        return inquiry
+
+    @staticmethod
+    def get_unread_count(user_id: str):
+        from src.models import Listing
+        count = 0
+
+        # Count inquiries on user's listings that are unread
+        owned_inquiries = Inquiry.query.filter(
+            Inquiry.parent_id == None,
+            Inquiry.read == False,
+            Listing.owner_id == user_id
+        ).join(Listing).all()
+
+        count += len(owned_inquiries)
+
+        # Count user's sent inquiries that have unread replies
+        sent_inquiries = Inquiry.query.filter(
+            Inquiry.sender_id == user_id,
+            Inquiry.parent_id == None
+        ).all()
+
+        for inq in sent_inquiries:
+            replies = Inquiry.query.filter(
+                Inquiry.parent_id == inq.id,
+                Inquiry.read == False
+            ).all()
+            if replies:
+                count += 1
+
+        return count

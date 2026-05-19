@@ -87,6 +87,7 @@ class Inquiry(db.Model):
     sender_contact = db.Column(db.String(255), nullable=False)
     message = db.Column(db.Text, nullable=False)
     parent_id = db.Column(db.String(36), db.ForeignKey("inquiries.id"), nullable=True)
+    read = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     replies = db.relationship("Inquiry", backref=db.backref("parent", remote_side=[id]), lazy="dynamic")
@@ -99,6 +100,7 @@ class Inquiry(db.Model):
             "sender_contact": self.sender_contact,
             "message": self.message,
             "parent_id": self.parent_id,
+            "read": self.read,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "listing": {
                 "id": self.listing.id,

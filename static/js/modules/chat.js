@@ -8,12 +8,45 @@ let currentConversation = null;
 let chatMessages = [];
 let onMessageSent = null;
 let refreshInterval = null;
+let badgeInterval = null;
 const REFRESH_INTERVAL = 5000; // Refresh every 5 seconds
+const BADGE_INTERVAL = 3000; // Check unread every 3 seconds
 
 export function init(onSentCallback) {
     onMessageSent = onSentCallback;
     createChatPanel();
     attachChatListeners();
+    startBadgePoll();
+}
+
+function startBadgePoll() {
+    updateUnreadBadge();
+    badgeInterval = setInterval(updateUnreadBadge, BADGE_INTERVAL);
+}
+
+function stopBadgePoll() {
+    if (badgeInterval) {
+        clearInterval(badgeInterval);
+        badgeInterval = null;
+    }
+}
+
+async function updateUnreadBadge() {
+    const badge = query('#messages-badge');
+    if (!badge) return;
+
+    try {
+        const data = await inquiriesApi.getUnreadCount();
+        const count = data?.count || 0;
+        if (count > 0) {
+            badge.textContent = count > 99 ? '99+' : count;
+            badge.hidden = false;
+        } else {
+            badge.hidden = true;
+        }
+    } catch (err) {
+        // Silently fail
+    }
 }
 
 function createChatPanel() {
@@ -89,6 +122,12 @@ export async function openChat(inquiry) {
     }
 
     renderChatMessages();
+    updateUnreadBadge(); // Refresh badge after opening chat
+
+    // Mark as read when opening chat (whether owner viewing inquiry or sender viewing replies)
+    if (currentConversation) {
+        inquiriesApi.markAsRead(currentConversation.id).catch(() => {});
+    }
 
     chatPanel.hidden = false;
     chatPanel.classList.add('is-open');
@@ -107,6 +146,8 @@ export function closeChat() {
     }
     currentConversation = null;
     stopAutoRefresh();
+    // Refresh badge count after closing chat
+    updateUnreadBadge();
 }
 
 export async function refreshMessages() {

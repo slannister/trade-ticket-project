@@ -88,3 +88,22 @@ def get_replies(inquiry_id):
         return success({"inquiries": [r.to_dict() for r in replies]})
     except ValueError as e:
         return error(str(e), 400)
+
+
+@inquiries_bp.route("/unread-count", methods=["GET"])
+@jwt_required()
+def get_unread_count():
+    user_id = get_jwt_identity()
+    count = InquiryService.get_unread_count(user_id)
+    return success({"count": count})
+
+
+@inquiries_bp.route("/<inquiry_id>/read", methods=["PUT"])
+@jwt_required()
+def mark_inquiry_as_read(inquiry_id):
+    user_id = get_jwt_identity()
+    try:
+        inquiry = InquiryService.mark_as_read(inquiry_id, user_id)
+        return success({"inquiry": inquiry.to_dict()}, "Marked as read")
+    except ValueError as e:
+        return error(str(e), 400)
