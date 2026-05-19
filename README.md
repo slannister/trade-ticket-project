@@ -1,192 +1,223 @@
 # TikSwap - 票券交易交流站
 
-![Python](https://img.shields.io/badge/Python-3.7+-blue.svg)
-![Flask](https://img.shields.io/badge/Flask-3.0-green.svg)
-![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-3.1-orange.svg)
+[![Python](https://img.shields.io/badge/Python-3.7+-blue.svg)](https://www.python.org/)
+[![Flask](https://img.shields.io/badge/Flask-3.0-green.svg)](https://flask.palletsprojects.com/)
+[![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-3.1-orange.svg)](https://www.sqlalchemy.org/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-輕量級的票券與收藏品交易平台，支援競標定價或以交換為導向的刊登方式。透過結構化的出售、快速交換與透明的談判紀錄，取代在社群平台上零散的私訊交易。
+A lightweight marketplace for ticket trading and collectibles, supporting both fixed-price listings and barter-style exchanges. Built with Flask and vanilla JavaScript.
 
-## 功能特色
+---
 
-- **多語系支援** - 繁體中文 / 英文一鍵切換
-- **即時聊天** - 買賣雙方可直接在站內對話
-- **未讀追蹤** - 訊息已讀/未讀狀態，紅色標記提醒
-- **我的最愛** - 收藏感興趣的刊登
-- **我的刊登** - 管理已發布的票券
-- **我的訊息** - 集中管理所有買家詢問
-- **刊登管理** - 可標記為已售出
-- **深色/淺色主題** - 一鍵切換
+## Features
 
-## 技術架構
+| Feature | Description |
+|---------|-------------|
+| **Multi-language** | One-click switching between Traditional Chinese and English |
+| **Real-time Chat** | Built-in messaging between buyers and sellers |
+| **Read Status** | Unread message tracking with visual indicators |
+| **Favorites** | Save interesting listings for later |
+| **Listing Management** | Full CRUD with status updates (active/sold/closed) |
+| **Dark/Light Theme** | System-wide theme toggle |
+| **Responsive Design** | Works on desktop and tablet |
 
-### 後端
+---
+
+## Tech Stack
+
+### Backend
 - **Framework**: Flask 3.0
 - **ORM**: Flask-SQLAlchemy 3.1
-- **認證**: Flask-JWT-Extended 4.6 + Bcrypt
-- **資料庫**: SQLite（開發）/ PostgreSQL（生產）
-- **API**: RESTful JSON API
+- **Authentication**: Flask-JWT-Extended 4.6 + Bcrypt
+- **Database**: SQLite (dev) / PostgreSQL (prod)
+- **API Style**: RESTful JSON
 
-### 前端
-- **原生 JavaScript**（無框架）
-- **模組化架構**: Utils / API Client / Modules / i18n 四層分離
-- **CSS**: 原生 CSS Variables（支援深色/淺色主題切換）
-- **多語系**: i18n 模組（static/js/i18n/）
+### Frontend
+- **Vanilla JavaScript** - No framework dependencies
+- **CSS Variables** - Custom properties for theming
+- **ES Modules** - Organized in API / Modules / Utils / i18n layers
 
-## 專案結構
+---
+
+## Project Structure
 
 ```
 trade-ticket-project/
-├── run.py                      # 應用程式入口
-├── config.py                   # 環境變數設定
-├── requirements.txt           # Python 依賴
+├── run.py                     # Application entry point
+├── config.py                  # Environment configuration
+├── requirements.txt           # Python dependencies
 │
-├── src/                        # 後端 src
-│   ├── extensions.py          # Flask extensions（db, jwt, bcrypt）
-│   ├── models.py               # SQLAlchemy Models
+├── src/                       # Backend source
+│   ├── extensions.py          # Flask extensions (db, jwt, bcrypt)
+│   ├── models.py              # SQLAlchemy models
 │   │
-│   ├── services/              # 商業邏輯層
-│   │   ├── __init__.py
-│   │   ├── auth_service.py    # 認證服務
-│   │   ├── listing_service.py # 刊登服務
-│   │   ├── inquiry_service.py # 詢問服務
-│   │   └── favorite_service.py # 最愛服務
+│   ├── services/              # Business logic layer
+│   │   ├── auth_service.py    # Authentication
+│   │   ├── listing_service.py # Listing management
+│   │   ├── inquiry_service.py # Messaging
+│   │   └── favorite_service.py # Favorites
 │   │
-│   ├── routes/                # 路由控制器
-│   │   ├── __init__.py        # 路由註冊
-│   │   ├── auth.py            # 認證路由
-│   │   ├── listings.py        # 刊登路由
-│   │   ├── inquiries.py       # 詢問路由
-│   │   ├── favorites.py       # 最愛路由
-│   │   └── upload.py          # 上傳路由
+│   ├── routes/                # Route controllers
+│   │   ├── auth.py
+│   │   ├── listings.py
+│   │   ├── inquiries.py
+│   │   ├── favorites.py
+│   │   └── upload.py
 │   │
-│   └── utils/                 # 工具函式
-│       ├── responses.py        # 統一 API 響應格式
-│       └── validators.py      # 輸入驗證
+│   └── utils/                 # Utilities
+│       ├── responses.py        # Standardized API responses
+│       └── validators.py      # Input validation
 │
-├── static/                     # 前端靜態資源
+├── static/                    # Frontend assets
 │   ├── css/
-│   │   └── styles.css         # 全域樣式
+│   │   └── styles.css         # Global styles
 │   └── js/
-│       ├── app.js             # 主頁入口
-│       ├── detail.js          # 詳情頁入口
-│       ├── api/               # API 客戶端
+│       ├── app.js             # Homepage entry
+│       ├── detail.js          # Detail page entry
+│       ├── api/               # API clients
 │       │   ├── client.js      # Fetch wrapper
 │       │   ├── auth.js
 │       │   ├── listings.js
 │       │   └── inquiries.js
-│       ├── modules/           # 功能模組
-│       │   ├── auth.js        # 登入/登出/驗證
-│       │   ├── chat.js        # 即時聊天面板
-│       │   ├── listings.js    # 刊登管理
-│       │   ├── favorites.js   # 我的最愛
-│       │   ├── messages.js   # 訊息列表
-│       │   ├── filters.js    # 篩選器
-│       │   └── pagination.js # 分頁
-│       ├── i18n/              # 多語系
-│       │   ├── index.js       # i18n 主模組
-│       │   ├── en.js          # 英文翻譯
-│       │   └── zh-TW.js       # 繁中翻譯
-│       └── utils/             # 工具函式
+│       ├── modules/           # Feature modules
+│       │   ├── auth.js        # Auth state management
+│       │   ├── chat.js        # Chat panel
+│       │   ├── listings.js    # Listing operations
+│       │   ├── favorites.js  # Favorites management
+│       │   ├── messages.js   # Message list
+│       │   ├── filters.js    # Search filters
+│       │   └── pagination.js # Pagination
+│       ├── i18n/              # Internationalization
+│       │   ├── index.js
+│       │   ├── en.js
+│       │   └── zh-TW.js
+│       └── utils/             # Utilities
 │           ├── date.js
 │           ├── dom.js
 │           ├── storage.js
 │           └── toast.js
 │
-├── templates/                  # Jinja2 模板
-│   ├── index.html             # 主頁
-│   ├── detail.html            # 詳情頁
-│   ├── profile.html           # 會員資料頁
-│   └── reset_password.html    # 重設密碼頁
+├── templates/                 # Jinja2 templates
+│   ├── index.html
+│   ├── detail.html
+│   ├── profile.html
+│   └── reset_password.html
 │
-├── instance/                   # 資料庫目錄
-│   └── tikswap.db             # SQLite 資料庫
+├── instance/                  # Database directory
+│   └── tikswap.db
 │
-└── uploads/                   # 圖片上傳目錄
+└── uploads/                   # Uploaded files
     └── listings/
 ```
 
-## 設計模式
+---
 
-### MVC + Service Layer
+## Architecture
 
 ```
 ┌─────────────┐     ┌─────────────┐     ┌─────────────┐
 │   Routes    │ ──▶ │  Services   │ ──▶ │   Models    │
-│ (Controller)│     │    (BL)     │     │     (M)     │
+│ (Controller)│     │   (Logic)   │     │     (M)     │
 └─────────────┘     └─────────────┘     └─────────────┘
+       │                   │                   │
+       ▼                   ▼                   ▼
+  HTTP Request      Business Logic       SQLAlchemy
+    Response        & Validation           Models
 ```
 
-## API 端點
+---
 
-### 認證 `/api/auth`
-| Method | Endpoint | 說明 | Auth |
-|--------|----------|------|------|
-| POST | `/register` | 註冊 | - |
-| POST | `/login` | 登入 | - |
-| POST | `/logout` | 登出 | JWT |
-| GET | `/me` | 當前用戶 | JWT |
-| PUT | `/profile` | 更新會員資料 | JWT |
-| POST | `/password/reset` | 重設密碼 | - |
-| POST | `/password/update` | 更新密碼 | JWT |
+## API Reference
 
-### 刊登 `/api/listings`
-| Method | Endpoint | 說明 | Auth |
-|--------|----------|------|------|
-| GET | `` | 列表（分頁/篩選） | - |
-| POST | `` | 建立刊登 | JWT |
-| GET | `/mine` | 我的刊登 | JWT |
-| GET | `/favorites` | 我的最愛 | JWT |
-| GET | `/<id>` | 詳情 | - |
-| PUT | `/<id>` | 更新 | JWT |
-| PUT | `/<id>/status` | 更新狀態（sold/closed） | JWT |
-| DELETE | `/<id>` | 刪除 | JWT |
+### Authentication `/api/auth`
 
-### 詢問 `/api/inquiries`
-| Method | Endpoint | 說明 | Auth |
-|--------|----------|------|------|
-| GET | `` | 我的訊息（所有對話） | JWT |
-| POST | `` | 發送詢問 | - |
-| POST | `/<id>/reply` | 回覆訊息 | JWT |
-| GET | `/<id>/replies` | 取得回覆列表 | JWT |
-| GET | `/unread-count` | 未讀數量 | JWT |
-| PUT | `/<id>/read` | 標記為已讀 | JWT |
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/register` | Create account | - |
+| POST | `/login` | Sign in | - |
+| POST | `/logout` | Sign out | JWT |
+| GET | `/me` | Get current user | JWT |
+| PUT | `/profile` | Update profile | JWT |
+| POST | `/password/reset` | Request reset | - |
+| POST | `/password/update` | Change password | JWT |
 
-### 最愛 `/api/favorites`
-| Method | Endpoint | 說明 | Auth |
-|--------|----------|------|------|
-| GET | `` | 我的最愛列表 | JWT |
-| POST | `/<listing_id>` | 加入最愛 | JWT |
-| DELETE | `/<listing_id>` | 移除最愛 | JWT |
+### Listings `/api/listings`
 
-### 上傳 `/api/upload`
-| Method | Endpoint | 說明 | Auth |
-|--------|----------|------|------|
-| POST | `` | 上傳圖片 | JWT |
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/` | List all (paginated) | - |
+| POST | `/` | Create listing | JWT |
+| GET | `/mine` | My listings | JWT |
+| GET | `/favorites` | Favorited listings | JWT |
+| GET | `/<id>` | Get by ID | - |
+| PUT | `/<id>` | Update listing | JWT |
+| PUT | `/<id>/status` | Update status | JWT |
+| DELETE | `/<id>` | Delete listing | JWT |
 
-## 本機執行
+### Inquiries `/api/inquiries`
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/` | All conversations | JWT |
+| POST | `/` | Send inquiry | - |
+| POST | `/<id>/reply` | Reply to thread | JWT |
+| GET | `/<id>/replies` | Get replies | JWT |
+| GET | `/unread-count` | Unread count | JWT |
+| PUT | `/<id>/read` | Mark as read | JWT |
+
+### Favorites `/api/favorites`
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/` | List favorites | JWT |
+| POST | `/<listing_id>` | Add to favorites | JWT |
+| DELETE | `/<listing_id>` | Remove | JWT |
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.7+
+
+### Installation
 
 ```bash
+# Clone the repository
+git clone https://github.com/slannister/trade-ticket-project.git
 cd trade-ticket-project
+
+# Install dependencies
 pip install -r requirements.txt
+
+# Run the application
 python run.py
 ```
 
-瀏覽器開啟 http://localhost:5000
+Open [http://localhost:5000](http://localhost:5000) in your browser.
 
-## 環境變數
+### Environment Variables
 
-```bash
-SECRET_KEY=your-secret-key
-JWT_SECRET_KEY=your-jwt-secret
-DATABASE_URL=sqlite:///instance/tikswap.db
-UPLOAD_FOLDER=uploads
-```
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SECRET_KEY` | Flask secret key | `dev-secret-key` |
+| `JWT_SECRET_KEY` | JWT signing key | `jwt-dev-secret` |
+| `DATABASE_URL` | Database connection | `sqlite:///instance/tikswap.db` |
+| `UPLOAD_FOLDER` | Upload directory | `uploads` |
 
-## 未來增強方向
+---
 
-- [ ] 串接 PostgreSQL 做生產部署
-- [ ] 新增郵件發送（註冊驗證、密碼重設）
-- [ ] 推播通知
-- [ ] 多幣別與面額比對
-- [ ] 行動版 UI 優化
-- [ ] 更多語系支援
+## License
+
+This project is for educational purposes.
+
+---
+
+## TODO
+
+- [ ] Production deployment with PostgreSQL
+- [ ] Email notifications (verification, password reset)
+- [ ] Push notifications
+- [ ] Mobile optimization
+- [ ] Additional language support
