@@ -1,7 +1,7 @@
 from flask import Flask, render_template, send_from_directory
 from flask_cors import CORS
 from config import Config
-from src.extensions import db, jwt, bcrypt
+from src.extensions import db, jwt, bcrypt, limiter
 
 
 def create_app(config_class=Config):
@@ -11,6 +11,7 @@ def create_app(config_class=Config):
     db.init_app(app)
     jwt.init_app(app)
     bcrypt.init_app(app)
+    limiter.init_app(app)
     CORS(app)
 
     import os

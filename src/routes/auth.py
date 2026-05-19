@@ -1,5 +1,6 @@
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from src.extensions import limiter
 from src.services import AuthService
 from src.utils.responses import success, error
 
@@ -7,6 +8,7 @@ auth_bp = Blueprint("auth", __name__)
 
 
 @auth_bp.route("/register", methods=["POST"])
+@limiter.limit("10 per hour")
 def register():
     data = request.get_json() or {}
     try:
@@ -24,6 +26,7 @@ def register():
 
 
 @auth_bp.route("/login", methods=["POST"])
+@limiter.limit("20 per hour")
 def login():
     data = request.get_json() or {}
     try:

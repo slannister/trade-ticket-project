@@ -1,6 +1,15 @@
 from datetime import datetime
 from src.extensions import db
 from src.models import Listing
+from src.utils.validators import escape_html
+
+
+def sanitize_text(text, max_length=1000):
+    """Escape HTML and truncate text."""
+    if text is None:
+        return None
+    escaped = escape_html(str(text))
+    return escaped[:max_length] if max_length else escaped
 
 
 class ListingService:
@@ -81,18 +90,18 @@ class ListingService:
                 raise ValueError("Invalid expires_at format")
 
         listing = Listing(
-            title=title,
+            title=sanitize_text(title, 200),
             type=type,
             owner_id=owner_id,
-            category=data.get('category') if data else None,
+            category=sanitize_text(data.get('category'), 50) if data else None,
             quantity=data.get('quantity', 1) if data else 1,
             face_value=data.get('face_value') if data else None,
             buy_now=data.get('buy_now') if data else None,
             delivery_method=data.get('delivery_method') if data else None,
-            location=data.get('location') if data else None,
+            location=sanitize_text(data.get('location'), 100) if data else None,
             expires_at=expires_at,
-            swap_preferences=data.get('swap_preferences') if data else None,
-            description=data.get('description') if data else None,
+            swap_preferences=sanitize_text(data.get('swap_preferences'), 500) if data else None,
+            description=sanitize_text(data.get('description'), 5000) if data else None,
             urgency=data.get('urgency', 'normal') if data else 'normal',
             images=data.get('images', []) if data else []
         )

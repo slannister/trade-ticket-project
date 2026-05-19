@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from flask import current_app
 from flask_jwt_extended import create_access_token
 from src.extensions import bcrypt, db
+from src.utils.validators import escape_html
 from src.models import User, PasswordReset
 from src.utils.validators import validate_email_format, validate_password
 
@@ -128,10 +129,13 @@ class AuthService:
             raise ValueError("User not found")
 
         if display_name is not None:
-            user.display_name = display_name.strip() if display_name else None
+            user.display_name = escape_html(display_name.strip())[:50] if display_name else None
 
         if phone is not None:
-            user.phone = phone.strip() if phone else None
+            # Only allow digits, spaces, hyphens, and plus sign in phone
+            import re
+            cleaned = re.sub(r'[^\d\s\-+]', '', phone)
+            user.phone = cleaned.strip()[:20] if cleaned else None
 
         db.session.commit()
         return user

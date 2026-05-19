@@ -1,6 +1,23 @@
+import re
+import html
+
+
+def escape_html(text):
+    """Escape HTML characters to prevent XSS attacks."""
+    if text is None:
+        return None
+    return html.escape(str(text), quote=True)
+
+
+def sanitize_input(text, max_length=1000):
+    """Sanitize text input: escape HTML and truncate to max length."""
+    if not text:
+        return text
+    escaped = escape_html(text)
+    return escaped[:max_length] if max_length else escaped
+
+
 def validate_email_format(email):
-    import re
-    pattern = r'^[\w.+-]+@[\w.-]+\.[a-zA-Z]{2,}$'
     if re.match(pattern, email):
         return True, None
     return False, "Invalid email format"

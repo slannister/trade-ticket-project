@@ -1,5 +1,14 @@
 from src.extensions import db
 from src.models import Inquiry, Listing
+from src.utils.validators import escape_html
+
+
+def sanitize_text(text, max_length=2000):
+    """Escape HTML and truncate text."""
+    if text is None:
+        return None
+    escaped = escape_html(str(text))
+    return escaped[:max_length] if max_length else escaped
 
 
 class InquiryService:
@@ -51,8 +60,8 @@ class InquiryService:
         inquiry = Inquiry(
             listing_id=listing_id,
             sender_id=sender_id,
-            sender_contact=sender_contact,
-            message=message,
+            sender_contact=sanitize_text(sender_contact, 100),
+            message=sanitize_text(message),
             parent_id=parent_id
         )
         db.session.add(inquiry)
@@ -73,8 +82,8 @@ class InquiryService:
         reply = Inquiry(
             listing_id=parent.listing_id,
             sender_id=sender_id,
-            sender_contact=sender_contact,
-            message=message,
+            sender_contact=sanitize_text(sender_contact, 100),
+            message=sanitize_text(message),
             parent_id=parent_id
         )
         db.session.add(reply)

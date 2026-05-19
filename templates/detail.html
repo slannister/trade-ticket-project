@@ -84,6 +84,18 @@
     </section>
   </main>
   <div id="toast-root" class="toast-root"></div>
+  <div aria-hidden="true" class="image-modal" id="image-modal">
+    <div class="image-modal-backdrop"></div>
+    <div aria-label="圖片預覽" aria-modal="true" class="image-modal-content" role="dialog">
+      <button aria-label="關閉" class="image-modal-close" type="button">×</button>
+      <img alt="刊登圖片預覽" class="image-modal-image" />
+      <div class="image-modal-controls">
+        <button aria-label="上一張" class="image-modal-nav image-modal-prev" type="button">‹</button>
+        <span class="image-modal-counter"></span>
+        <button aria-label="下一張" class="image-modal-nav image-modal-next" type="button">›</button>
+      </div>
+    </div>
+  </div>
   <script src="{{ url_for('static', filename='js/detail.js') }}" type="module"></script>
 </body>
 </html>

@@ -211,13 +211,3 @@ Open [http://localhost:5000](http://localhost:5000) in your browser.
 ## License
 
 This project is for educational purposes.
-
----
-
-## TODO
-
-- [ ] Production deployment with PostgreSQL
-- [ ] Email notifications (verification, password reset)
-- [ ] Push notifications
-- [ ] Mobile optimization
-- [ ] Additional language support

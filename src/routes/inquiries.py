@@ -1,5 +1,6 @@
 from flask import Blueprint, request
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from src.extensions import limiter
 from src.services import InquiryService
 from src.utils.responses import success, error
 
@@ -7,6 +8,7 @@ inquiries_bp = Blueprint("inquiries", __name__)
 
 
 @inquiries_bp.route("", methods=["GET"])
+@limiter.limit("100 per hour")
 @jwt_required()
 def get_inquiries():
     user_id = get_jwt_identity()
@@ -23,6 +25,7 @@ def get_sent_inquiries():
 
 
 @inquiries_bp.route("", methods=["POST"])
+@limiter.limit("30 per hour")
 def create_inquiry():
     data = request.get_json() or {}
 

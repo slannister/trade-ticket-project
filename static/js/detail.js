@@ -10,6 +10,76 @@ const DELIVERY_METHODS = { meetup: '面交', shipping: '寄件' };
 const TYPE_LABELS_EN = { auction: 'For Sale', transfer: 'Transfer', swap: 'Swap', request: 'Request' };
 const DELIVERY_METHODS_EN = { meetup: 'Meetup', shipping: 'Shipping' };
 
+let imageModalCurrentIndex = 0;
+let imageModalImages = [];
+
+function initImageModal() {
+    const modal = query('#image-modal');
+    if (!modal) return;
+
+    const backdrop = modal.querySelector('.image-modal-backdrop');
+    const closeBtn = modal.querySelector('.image-modal-close');
+    const prevBtn = modal.querySelector('.image-modal-prev');
+    const nextBtn = modal.querySelector('.image-modal-next');
+
+    backdrop?.addEventListener('click', closeImageModal);
+    closeBtn?.addEventListener('click', closeImageModal);
+    prevBtn?.addEventListener('click', () => navigateImage(-1));
+    nextBtn?.addEventListener('click', () => navigateImage(1));
+
+    document.addEventListener('keydown', (e) => {
+        if (!modal || modal.getAttribute('aria-hidden') === 'true') return;
+        if (e.key === 'Escape') closeImageModal();
+        if (e.key === 'ArrowLeft') navigateImage(-1);
+        if (e.key === 'ArrowRight') navigateImage(1);
+    });
+}
+
+function openImageModal(images, startIndex = 0) {
+    const modal = query('#image-modal');
+    if (!modal || !images || images.length === 0) return;
+
+    imageModalImages = images;
+    imageModalCurrentIndex = startIndex;
+
+    modal.setAttribute('aria-hidden', 'false');
+    updateImageModalContent();
+}
+
+function closeImageModal() {
+    const modal = query('#image-modal');
+    if (modal) {
+        modal.setAttribute('aria-hidden', 'true');
+    }
+}
+
+function navigateImage(direction) {
+    imageModalCurrentIndex += direction;
+    if (imageModalCurrentIndex < 0) {
+        imageModalCurrentIndex = imageModalImages.length - 1;
+    } else if (imageModalCurrentIndex >= imageModalImages.length) {
+        imageModalCurrentIndex = 0;
+    }
+    updateImageModalContent();
+}
+
+function updateImageModalContent() {
+    const modal = query('#image-modal');
+    if (!modal) return;
+
+    const img = modal.querySelector('.image-modal-image');
+    const counter = modal.querySelector('.image-modal-counter');
+
+    if (img && imageModalImages[imageModalCurrentIndex]) {
+        const imgData = imageModalImages[imageModalCurrentIndex];
+        img.src = imgData.url || imgData;
+    }
+
+    if (counter) {
+        counter.textContent = `${imageModalCurrentIndex + 1} / ${imageModalImages.length}`;
+    }
+}
+
 function getTypeLabel(type) {
     const locale = getLocale();
     if (locale.startsWith('zh')) {
@@ -31,6 +101,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateStaticContent();
     initThemeToggle();
     initLangToggle();
+    initImageModal();
 
     const params = new URLSearchParams(window.location.search);
     const listingId = params.get('id');
@@ -151,12 +222,19 @@ function renderListing(listing) {
         const images = listing.images || [];
         if (images.length > 0) {
             images.forEach((img, index) => {
+                const imgWrapper = document.createElement('div');
+                imgWrapper.className = 'detail-image-wrapper';
+
                 const imgEl = document.createElement('img');
                 imgEl.src = img.url || img;
                 imgEl.alt = `${listing.title} image ${index + 1}`;
                 imgEl.loading = 'lazy';
                 if (index === 0) imgEl.className = 'detail-image-main';
-                imagesEl.appendChild(imgEl);
+                imgEl.style.cursor = 'pointer';
+                imgEl.addEventListener('click', () => openImageModal(images, index));
+
+                imgWrapper.appendChild(imgEl);
+                imagesEl.appendChild(imgWrapper);
             });
         }
     }
