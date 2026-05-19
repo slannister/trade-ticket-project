@@ -1,23 +1,49 @@
-import { init as initAuth, handleLogin, handleRegister, handleLogout, getCurrentUser, requireAuth } from './modules/auth.js';
-import { loadListings, loadMyListings, createListing, updateListing, deleteListing, uploadImage } from './modules/listings.js';
-import { init as initFavorites, isFavorite, toggle as toggleFavoriteLocal, syncFromServer, addFavorite, removeFavorite } from './modules/favorites.js';
-import { init as initChat } from './modules/chat.js';
+import { formatDateValue, formatDateTimeValue } from './utils/date.js';
+import { showToast, query, queryAll, createElement, removeChildren, show, hide } from './utils/dom.js';
 import { getFilters, setFilter, resetFilters, buildQueryParams } from './modules/filters.js';
 import { getPagination, setPagination, nextPage, prevPage, resetPage } from './modules/pagination.js';
-import { showToast, query, queryAll, createElement, removeChildren, show, hide } from './utils/dom.js';
-import { formatDateValue, formatDateTimeValue } from './utils/date.js';
-
-const LISTING_TYPES = { auction: '出售', transfer: '讓票', swap: '交換', request: '求票' };
-const DELIVERY_METHODS = { meetup: '面交', shipping: '寄件' };
+import { loadListings, loadMyListings, createListing, updateListing, deleteListing, uploadImage } from './modules/listings.js';
+import { init as initAuth, handleLogin, handleRegister, handleLogout, getCurrentUser, requireAuth } from './modules/auth.js';
+import { init as initFavorites, isFavorite, toggle as toggleFavoriteLocal, syncFromServer, addFavorite, removeFavorite } from './modules/favorites.js';
+import { init as initChat } from './modules/chat.js';
+import { initI18n, getLocale, setLocale, t, updateStaticContent } from './i18n/index.js';
 const CATEGORY_BACKGROUNDS = {
     '演唱會': 'linear-gradient(140deg, rgba(224, 114, 255, 0.4), rgba(118, 86, 255, 0.35))',
+    'Concert': 'linear-gradient(140deg, rgba(224, 114, 255, 0.4), rgba(118, 86, 255, 0.35))',
     '體育賽事': 'linear-gradient(140deg, rgba(91, 200, 255, 0.35), rgba(76, 181, 163, 0.4))',
+    'Sports': 'linear-gradient(140deg, rgba(91, 200, 255, 0.35), rgba(76, 181, 163, 0.4))',
     '戲劇舞台': 'linear-gradient(140deg, rgba(255, 168, 91, 0.4), rgba(170, 99, 255, 0.35))',
+    'Theater': 'linear-gradient(140deg, rgba(255, 168, 91, 0.4), rgba(170, 99, 255, 0.35))',
     '綜藝活動': 'linear-gradient(140deg, rgba(255, 129, 179, 0.38), rgba(255, 182, 108, 0.38))',
+    'Show / Event': 'linear-gradient(140deg, rgba(255, 129, 179, 0.38), rgba(255, 182, 108, 0.38))',
     '展覽 / 市集': 'linear-gradient(140deg, rgba(99, 205, 255, 0.35), rgba(112, 255, 188, 0.35))',
+    'Exhibition / Market': 'linear-gradient(140deg, rgba(99, 205, 255, 0.35), rgba(112, 255, 188, 0.35))',
     '收藏品 / 周邊': 'linear-gradient(140deg, rgba(164, 129, 255, 0.38), rgba(108, 218, 255, 0.32))',
-    '其他': 'linear-gradient(140deg, rgba(140, 150, 170, 0.35), rgba(90, 99, 120, 0.35))'
+    'Collectibles / Merchandise': 'linear-gradient(140deg, rgba(164, 129, 255, 0.38), rgba(108, 218, 255, 0.32))',
+    '其他': 'linear-gradient(140deg, rgba(140, 150, 170, 0.35), rgba(90, 99, 120, 0.35))',
+    'Other': 'linear-gradient(140deg, rgba(140, 150, 170, 0.35), rgba(90, 99, 120, 0.35))'
 };
+
+const LISTING_TYPES = { auction: '出售', transfer: '讓票', swap: '交換', request: '求票' };
+const LISTING_TYPES_EN = { auction: 'For Sale', transfer: 'Transfer', swap: 'Swap', request: 'Request' };
+const DELIVERY_METHODS = { meetup: '面交', shipping: '寄件' };
+const DELIVERY_METHODS_EN = { meetup: 'Meetup', shipping: 'Shipping' };
+
+function getListingTypeLabel(type) {
+    const locale = getLocale();
+    if (locale.startsWith('zh')) {
+        return LISTING_TYPES[type] || type || '';
+    }
+    return LISTING_TYPES_EN[type] || type || '';
+}
+
+function getDeliveryMethodLabel(method) {
+    const locale = getLocale();
+    if (locale.startsWith('zh')) {
+        return DELIVERY_METHODS[method] || method || '';
+    }
+    return DELIVERY_METHODS_EN[method] || method || '';
+}
 
 function getCategoryBackground(category) {
     return CATEGORY_BACKGROUNDS[category] || 'linear-gradient(140deg, rgba(91, 140, 255, 0.24), rgba(127, 91, 255, 0.18))';
@@ -28,10 +54,13 @@ let activeCategory = 'all';
 let editingListingId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
+    initI18n();
+    updateStaticContent();
     initAuth(handleAuthChange);
     initFavorites();
     initChat(loadMessagesView);
     initThemeToggle();
+    initLangToggle();
     initMemberModal();
     initImageModal();
     bindEvents();
@@ -45,14 +74,35 @@ function initThemeToggle() {
 
     const savedTheme = localStorage.getItem('theme') || 'dark';
     document.body.setAttribute('data-theme', savedTheme);
-    toggle.setAttribute('aria-label', savedTheme === 'dark' ? '切換為亮色模式' : '切換為暗色模式');
+    toggle.setAttribute('aria-label', savedTheme === 'dark' ? t('theme.switchToLight') : t('theme.switchToDark'));
 
     toggle.addEventListener('click', () => {
         const current = document.body.getAttribute('data-theme');
         const next = current === 'dark' ? 'light' : 'dark';
         document.body.setAttribute('data-theme', next);
         localStorage.setItem('theme', next);
-        toggle.setAttribute('aria-label', next === 'dark' ? '切換為亮色模式' : '切換為暗色模式');
+        toggle.setAttribute('aria-label', next === 'dark' ? t('theme.switchToLight') : t('theme.switchToDark'));
+    });
+}
+
+/* ── Language Toggle ── */
+function initLangToggle() {
+    const toggle = query('#lang-toggle');
+    if (!toggle) return;
+
+    const updateLabel = () => {
+        const locale = getLocale();
+        toggle.textContent = locale.startsWith('zh') ? 'EN' : '中';
+    };
+    updateLabel();
+
+    toggle.addEventListener('click', () => {
+        const current = getLocale();
+        const next = current.startsWith('zh') ? 'en' : 'zh-TW';
+        setLocale(next);
+        updateStaticContent();
+        renderListings();
+        updateLabel();
     });
 }
 
@@ -109,10 +159,10 @@ function initMemberModal() {
             const password = query('#member-login-password').value;
             try {
                 await handleLogin(email, password);
-                showToast('登入成功！', 'success');
+                showToast(t('auth.loginSuccess'), 'success');
                 closeMemberModal();
             } catch (err) {
-                showMemberMessage(err.message || '登入失敗', 'error');
+                showMemberMessage(err.message || t('auth.loginFailed'), 'error');
             }
         });
     }
@@ -126,15 +176,15 @@ function initMemberModal() {
             const password = query('#member-signup-password').value;
             const confirm = query('#member-signup-confirm').value;
             if (password !== confirm) {
-                showMemberMessage('兩次輸入的密碼不一致', 'error');
+                showMemberMessage(t('auth.passwordMismatch'), 'error');
                 return;
             }
             try {
                 await handleRegister(email, password);
-                showToast('註冊成功！', 'success');
+                showToast(t('auth.registerSuccess'), 'success');
                 closeMemberModal();
             } catch (err) {
-                showMemberMessage(err.message || '註冊失敗', 'error');
+                showMemberMessage(err.message || t('auth.registerFailed'), 'error');
             }
         });
     }
@@ -163,12 +213,12 @@ function initMemberModal() {
         btn.addEventListener('click', async () => {
             try {
                 await handleLogout();
-                showToast('已登出', 'success');
+                showToast(t('auth.logoutSuccess'), 'success');
                 closeMemberModal();
                 const accountMenu = query('[data-account-menu]');
                 if (accountMenu) accountMenu.hidden = true;
             } catch (err) {
-                showToast('登出失敗', 'error');
+                showToast(t('errors.deleteFailed') || '登出失敗', 'error');
             }
         });
     });
@@ -328,7 +378,7 @@ function handleAuthChange(user) {
 function updateMemberUI(user) {
     const memberButton = query('[data-member-trigger]');
     if (memberButton) {
-        memberButton.textContent = user ? `Hi，${user.display_name || user.email}` : '登入 / 註冊';
+        memberButton.textContent = user ? `${t('auth.loginSuccess')}，${user.display_name || user.email}` : t('auth.loginRegister');
         memberButton.dataset.memberState = user ? 'signed-in' : 'signed-out';
     }
     // Show/hide logout button in modal
@@ -365,7 +415,7 @@ async function loadListingsView(params = {}) {
         updatePaginationUI();
     } catch (error) {
         console.error('Load listings error:', error);
-        showToast('載入失敗，請稍後再試', 'error');
+        showToast(t('errors.loadFailed'), 'error');
     }
 }
 
@@ -388,8 +438,8 @@ function updatePaginationUI() {
 
     const start = (currentPage - 1) * 20 + 1;
     const end = Math.min(currentPage * 20, totalItems);
-    if (infoEl) infoEl.textContent = `第 ${start}-${end} 筆，共 ${totalItems} 筆`;
-    if (pageEl) pageEl.textContent = `第 ${currentPage} / ${totalPages} 頁`;
+    if (infoEl) infoEl.textContent = `${t('pagination.showing').replace('{start}', start).replace('{end}', end).replace('{total}', totalItems)}`;
+    if (pageEl) pageEl.textContent = t('pagination.page').replace('{current}', currentPage).replace('{total}', totalPages);
     if (prevBtn) prevBtn.disabled = currentPage <= 1;
     if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
 }
@@ -402,7 +452,7 @@ function renderListings() {
     removeChildren(container);
 
     if (listings.length === 0) {
-        container.appendChild(createElement('div', { className: 'empty-state', textContent: '沒有找到符合條件的刊登。' }));
+        container.appendChild(createElement('div', { className: 'empty-state', textContent: t('empty.noListings') }));
         return;
     }
 
@@ -422,41 +472,44 @@ function createListingCard(listing) {
 
     const imagesDataAttr = images.length > 1 ? ` data-gallery-trigger data-images='${btoa(JSON.stringify(images))}'` : '';
 
+    const listingTypeLabel = getListingTypeLabel(listing.type);
+    const deliveryLabel = getDeliveryMethodLabel(listing.delivery_method);
+
     card.innerHTML = `
         <div class="listing-card-media" style="background: ${background}">
             ${images.length > 0
             ? `<img src="${images[0].url || images[0]}" alt="${listing.title}" loading="lazy"${imagesDataAttr} />`
-            : `<span class="listing-card-fallback">${(listing.category || listing.title || '票').charAt(0).toUpperCase()}</span>`}
+            : `<span class="listing-card-fallback">${(listing.category || listing.title || t('category.other')).charAt(0).toUpperCase()}</span>`}
         </div>
         <div class="listing-card-body">
             <div class="listing-card-title-row">
-                <h3 class="listing-card-title">${listing.title || '未命名票券'}</h3>
+                <h3 class="listing-card-title">${listing.title || t('listingForm.titlePlaceholder')}</h3>
                 ${isOwner ? `
                 <div class="listing-card-owner-menu">
-                    <button class="owner-menu-trigger" type="button" aria-label="管理">⋯</button>
+                    <button class="owner-menu-trigger" type="button" aria-label="${t('edit')}">⋯</button>
                     <div class="owner-menu" role="menu">
-                        <button class="owner-menu-item listing-card-edit" type="button" role="menuitem">編輯</button>
-                        <button class="owner-menu-item listing-card-delete" type="button" role="menuitem">刪除</button>
+                        <button class="owner-menu-item listing-card-edit" type="button" role="menuitem">${t('edit')}</button>
+                        <button class="owner-menu-item listing-card-delete" type="button" role="menuitem">${t('delete')}</button>
                     </div>
                 </div>` : `
-                <button class="listing-card-favorite${isFav ? ' is-active' : ''}" type="button" aria-pressed="${isFav}" aria-label="${isFav ? '移除最愛' : '加入最愛'}"></button>`}
+                <button class="listing-card-favorite${isFav ? ' is-active' : ''}" type="button" aria-pressed="${isFav}" aria-label="${isFav ? t('favorites.removed') : t('favorites.added')}"></button>`}
             </div>
             <p class="listing-card-meta">
-                ${listing.type ? `<span>${LISTING_TYPES[listing.type] || listing.type}</span>` : ''}
+                ${listingTypeLabel ? `<span>${listingTypeLabel}</span>` : ''}
                 ${listing.category ? `<span>${listing.category}</span>` : ''}
-                ${listing.quantity ? `<span>數量 ${listing.quantity}</span>` : ''}
-                ${listing.delivery_method ? `<span>${DELIVERY_METHODS[listing.delivery_method] || listing.delivery_method}</span>` : ''}
+                ${listing.quantity ? `<span>${t('listingForm.quantity')} ${listing.quantity}</span>` : ''}
+                ${deliveryLabel ? `<span>${deliveryLabel}</span>` : ''}
                 ${listing.location ? `<span>${listing.location}</span>` : ''}
             </p>
-            <p class="listing-card-description">${listing.description || '暫無補充資訊。'}</p>
-            ${listing.created_at ? `<p class="listing-card-published">發佈時間：${formatDateTimeValue(listing.created_at)}</p>` : ''}
+            <p class="listing-card-description">${listing.description || t('listingCard.noDescription')}</p>
+            ${listing.created_at ? `<p class="listing-card-published">${t('listingCard.published')}${formatDateTimeValue(listing.created_at)}</p>` : ''}
         </div>
         <div class="listing-card-footer">
             <div class="listing-card-price">
-                <span class="price-label">價格</span>
-                <strong class="price-value">${listing.buy_now ? `NT$ ${Number(listing.buy_now).toLocaleString()}` : listing.face_value ? `原價 NT$ ${Number(listing.face_value).toLocaleString()}` : '面議'}</strong>
+                <span class="price-label">${t('listingCard.priceLabel')}</span>
+                <strong class="price-value">${listing.buy_now ? `NT$ ${Number(listing.buy_now).toLocaleString()}` : listing.face_value ? `${t('detail.faceValue')} NT$ ${Number(listing.face_value).toLocaleString()}` : t('listingCard.priceNegotiable')}</strong>
             </div>
-            <button class="listing-card-action" data-listing-id="${listing.id}">查看詳情</button>
+            <button class="listing-card-action" data-listing-id="${listing.id}">${t('listingCard.viewDetails')}</button>
         </div>
     `;
 
@@ -478,7 +531,7 @@ function createListingCard(listing) {
     if (favBtn) {
         favBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            if (!requireAuth('請先登入才能收藏')) {
+            if (!requireAuth(t('authPrompts.toFavorite'))) {
                 openMemberModal();
                 return;
             }
@@ -486,9 +539,9 @@ function createListingCard(listing) {
                 const added = await toggleFavoriteLocal(listing.id);
                 favBtn.classList.toggle('is-active', added);
                 favBtn.setAttribute('aria-pressed', added);
-                showToast(added ? '已加入我的最愛' : '已移除我的最愛', 'success');
+                showToast(added ? t('favorites.added') : t('favorites.removed'), 'success');
             } catch (err) {
-                showToast('操作失敗', 'error');
+                showToast(t('favorites.addFailed'), 'error');
             }
         });
     }
@@ -530,13 +583,13 @@ function createListingCard(listing) {
 
         deleteBtn?.addEventListener('click', async (e) => {
             e.stopPropagation();
-            if (confirm('確定要刪除此刊登嗎？')) {
+            if (confirm(t('listingForm.deleteConfirm'))) {
                 try {
                     await deleteListing(listing.id);
-                    showToast('刊登已刪除', 'success');
+                    showToast(t('listingForm.deleted'), 'success');
                     await loadListingsView();
                 } catch (err) {
-                    showToast('刪除失敗', 'error');
+                    showToast(t('errors.deleteFailed'), 'error');
                 }
             }
         });
@@ -699,7 +752,7 @@ function bindEvents() {
 
             // Update panel title
             const panelTitle = query('#category-panel-title');
-            if (panelTitle) panelTitle.textContent = btn.querySelector('span:last-child')?.textContent || '全部票券';
+            if (panelTitle) panelTitle.textContent = btn.querySelector('span:last-child')?.textContent || t('category.all');
 
             // Handle special views
             const categoryPanel = query('#category-panel');
@@ -741,7 +794,7 @@ function bindEvents() {
     const createBtn = query('[data-scroll-target="#listing-form-panel"]');
     if (createBtn) {
         createBtn.addEventListener('click', () => {
-            if (!requireAuth('請先登入才能建立刊登')) {
+            if (!requireAuth(t('authPrompts.toPublish'))) {
                 openMemberModal();
                 return;
             }
@@ -772,7 +825,7 @@ function bindEvents() {
 
 /* ── My Listings View ── */
 async function loadMyListingsView() {
-    if (!requireAuth('請先登入以查看我的刊登')) {
+    if (!requireAuth(t('authPrompts.toViewMyListings'))) {
         openMemberModal();
         return;
     }
@@ -781,13 +834,13 @@ async function loadMyListingsView() {
         listings = Array.isArray(data) ? data : [];
         renderListings();
     } catch (error) {
-        showToast('載入失敗', 'error');
+        showToast(t('errors.loadFailed'), 'error');
     }
 }
 
 /* ── Favorites View ── */
 async function loadFavoritesView() {
-    if (!requireAuth('請先登入以查看我的最愛')) {
+    if (!requireAuth(t('authPrompts.toViewFavorites'))) {
         openMemberModal();
         return;
     }
@@ -799,13 +852,13 @@ async function loadFavoritesView() {
         listings = allListings.filter(l => isFavorite(l.id));
         renderListings();
     } catch (error) {
-        showToast('載入失敗', 'error');
+        showToast(t('errors.loadFailed'), 'error');
     }
 }
 
 /* ── Messages View ── */
 async function loadMessagesView() {
-    if (!requireAuth('請先登入以查看訊息')) {
+    if (!requireAuth(t('authPrompts.toViewMessages'))) {
         openMemberModal();
         return;
     }
@@ -818,7 +871,7 @@ async function loadMessagesView() {
         removeChildren(container);
 
         if (messages.length === 0) {
-            container.appendChild(createElement('div', { className: 'empty-state', textContent: '目前沒有收到任何訊息。' }));
+            container.appendChild(createElement('div', { className: 'empty-state', textContent: t('empty.noMessages') }));
             return;
         }
 
@@ -827,12 +880,12 @@ async function loadMessagesView() {
             const listingInfo = msg.listing ? `<a href="/detail?id=${msg.listing.id}" class="message-listing-link">${msg.listing.title}</a>` : '';
             card.innerHTML = `
                 <div class="message-header">
-                    <span class="message-sender">${msg.sender_contact || '匿名'}</span>
+                    <span class="message-sender">${msg.sender_contact || 'Anonymous'}</span>
                     <span class="message-time">${formatDateTimeValue(msg.created_at)}</span>
                 </div>
                 ${listingInfo ? `<div class="message-listing">${listingInfo}</div>` : ''}
                 <p class="message-body">${msg.message}</p>
-                <button class="message-reply-btn" type="button">回覆</button>
+                <button class="message-reply-btn" type="button">${t('messages.reply')}</button>
             `;
             card.addEventListener('click', (e) => {
                 if (e.target.matches('.message-reply-btn') || e.target.closest('.message-reply-btn')) {
@@ -841,10 +894,10 @@ async function loadMessagesView() {
                     });
                 }
             });
-            container.appendChild(card);
-        });
+        container.appendChild(card);
+    });
     } catch (error) {
-        showToast('載入訊息失敗', 'error');
+        showToast(t('errors.loadFailed'), 'error');
     }
 }
 
@@ -852,7 +905,7 @@ async function loadMessagesView() {
 async function handleFormSubmit(e) {
     e.preventDefault();
 
-    if (!requireAuth('請先登入才能發布刊登')) {
+    if (!requireAuth(t('authPrompts.toPublish'))) {
         openMemberModal();
         return;
     }
@@ -901,10 +954,10 @@ async function handleFormSubmit(e) {
     try {
         if (editingListingId) {
             await updateListing(editingListingId, data);
-            showToast('刊登已更新！', 'success');
+            showToast(t('listingForm.updated'), 'success');
         } else {
             await createListing(data);
-            showToast('刊登已成功發布！', 'success');
+            showToast(t('listingForm.created'), 'success');
         }
         e.target.reset();
         editingListingId = null;
@@ -914,6 +967,6 @@ async function handleFormSubmit(e) {
         if (formPanel) hide(formPanel);
         await loadListingsView();
     } catch (error) {
-        showToast(error.message || '儲存失敗，請稍後再試', 'error');
+        showToast(error.message || t('errors.saveFailed'), 'error');
     }
 }

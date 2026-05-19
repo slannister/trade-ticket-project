@@ -3,18 +3,40 @@ import { createInquiry } from './api/inquiries.js';
 import { showToast, query } from './utils/dom.js';
 import { formatDateValue } from './utils/date.js';
 import { getCurrentUser } from './api/auth.js';
+import { initI18n, getLocale, setLocale, t, updateStaticContent } from './i18n/index.js';
 
 const TYPE_LABELS = { auction: '出售', transfer: '讓票', swap: '交換', request: '求票' };
 const DELIVERY_METHODS = { meetup: '面交', shipping: '寄件' };
+const TYPE_LABELS_EN = { auction: 'For Sale', transfer: 'Transfer', swap: 'Swap', request: 'Request' };
+const DELIVERY_METHODS_EN = { meetup: 'Meetup', shipping: 'Shipping' };
+
+function getTypeLabel(type) {
+    const locale = getLocale();
+    if (locale.startsWith('zh')) {
+        return TYPE_LABELS[type] || type || '—';
+    }
+    return TYPE_LABELS_EN[type] || type || '—';
+}
+
+function getDeliveryLabel(method) {
+    const locale = getLocale();
+    if (locale.startsWith('zh')) {
+        return DELIVERY_METHODS[method] || method || '—';
+    }
+    return DELIVERY_METHODS_EN[method] || method || '—';
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
+    initI18n();
+    updateStaticContent();
     initThemeToggle();
+    initLangToggle();
 
     const params = new URLSearchParams(window.location.search);
     const listingId = params.get('id');
 
     if (!listingId) {
-        showToast('無法取得刊登資訊', 'error');
+        showToast(t('errors.loadFailed'), 'error');
         return;
     }
 
@@ -37,13 +59,35 @@ function initThemeToggle() {
     });
 }
 
+let currentListing = null;
+
+function initLangToggle() {
+    const toggle = query('#lang-toggle');
+    if (!toggle) return;
+
+    const updateLabel = () => {
+        const locale = getLocale();
+        toggle.textContent = locale.startsWith('zh') ? 'EN' : '中';
+    };
+    updateLabel();
+
+    toggle.addEventListener('click', () => {
+        const current = getLocale();
+        const next = current.startsWith('zh') ? 'en' : 'zh-TW';
+        setLocale(next);
+        updateStaticContent();
+        if (currentListing) renderListing(currentListing);
+        updateLabel();
+    });
+}
+
 async function loadListing(id) {
     try {
         const data = await getListing(id);
-        // client.js auto-unwraps Flask's wrapper
-        renderListing(data.listing || data);
+        currentListing = data.listing || data;
+        renderListing(currentListing);
     } catch (error) {
-        showToast('載入失敗，請稍後再試', 'error');
+        showToast(t('errors.loadFailed'), 'error');
     }
 }
 
@@ -66,12 +110,12 @@ function renderListing(listing) {
     const createdEl = root.querySelector('[data-created]');
     const imagesEl = root.querySelector('[data-images]');
 
-    if (titleEl) titleEl.textContent = listing.title || '未命名票券';
-    if (descriptionEl) descriptionEl.textContent = listing.description || '暫無補充資訊。';
-    if (typeEl) typeEl.textContent = TYPE_LABELS[listing.type] || listing.type || '—';
+    if (titleEl) titleEl.textContent = listing.title || t('listingForm.titlePlaceholder');
+    if (descriptionEl) descriptionEl.textContent = listing.description || t('detail.noDescription');
+    if (typeEl) typeEl.textContent = getTypeLabel(listing.type);
     if (categoryEl) categoryEl.textContent = listing.category || '—';
     if (quantityEl) quantityEl.textContent = listing.quantity || '—';
-    if (deliveryEl) deliveryEl.textContent = DELIVERY_METHODS[listing.delivery_method] || listing.delivery_method || '—';
+    if (deliveryEl) deliveryEl.textContent = getDeliveryLabel(listing.delivery_method);
     if (locationEl) locationEl.textContent = listing.location || '—';
     if (expiresEl) expiresEl.textContent = listing.expires_at ? formatDateValue(listing.expires_at) : '—';
 
@@ -79,9 +123,9 @@ function renderListing(listing) {
         if (listing.buy_now) {
             priceEl.textContent = `NT$ ${Number(listing.buy_now).toLocaleString()}`;
         } else if (listing.face_value) {
-            priceEl.textContent = `原價 NT$ ${Number(listing.face_value).toLocaleString()}`;
+            priceEl.textContent = `${t('detail.faceValue')} NT$ ${Number(listing.face_value).toLocaleString()}`;
         } else {
-            priceEl.textContent = '面議';
+            priceEl.textContent = t('listingCard.priceNegotiable');
         }
     }
 
@@ -109,7 +153,7 @@ function renderListing(listing) {
             images.forEach((img, index) => {
                 const imgEl = document.createElement('img');
                 imgEl.src = img.url || img;
-                imgEl.alt = `${listing.title} 圖片 ${index + 1}`;
+                imgEl.alt = `${listing.title} image ${index + 1}`;
                 imgEl.loading = 'lazy';
                 if (index === 0) imgEl.className = 'detail-image-main';
                 imagesEl.appendChild(imgEl);
@@ -122,19 +166,19 @@ function renderListing(listing) {
         if (listing.type) {
             const tag = document.createElement('span');
             tag.className = 'detail-tag';
-            tag.textContent = TYPE_LABELS[listing.type];
+            tag.textContent = getTypeLabel(listing.type);
             tagsEl.appendChild(tag);
         }
         if (listing.urgency === 'urgent') {
             const urgentTag = document.createElement('span');
             urgentTag.className = 'detail-tag detail-tag-urgent';
-            urgentTag.textContent = '超急';
+            urgentTag.textContent = t('listingForm.urgencyUrgent');
             tagsEl.appendChild(urgentTag);
         }
     }
 
     // Update page title
-    document.title = `${listing.title || '刊登詳情'} - TikSwap`;
+    document.title = `${listing.title || t('detail.listingTitle')} - TikSwap`;
 }
 
 function bindInquiryForm() {
@@ -148,7 +192,7 @@ function bindInquiryForm() {
         const message = inquiryForm.querySelector('textarea[name="message"]')?.value;
 
         if (!message) {
-            showToast('請輸入訊息', 'error');
+            showToast(t('detail.messagePlaceholder') || '請輸入訊息', 'error');
             return;
         }
 
@@ -157,10 +201,10 @@ function bindInquiryForm() {
 
         try {
             await createInquiry(listingId, message, senderContact);
-            showToast('訊息已送出！', 'success');
+            showToast(t('messages.sent'), 'success');
             inquiryForm.reset();
         } catch (error) {
-            showToast('訊息傳送失敗，請稍後再試', 'error');
+            showToast(t('errors.sendFailed'), 'error');
         }
     });
 }
