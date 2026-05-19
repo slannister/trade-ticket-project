@@ -2484,6 +2484,12 @@ body[data-theme='light'] .filter-search-tag {
   border-color: rgba(255, 89, 117, 0.5);
 }
 
+.detail-tag-sold {
+  background: rgba(229, 57, 53, 0.15);
+  border-color: rgba(229, 57, 53, 0.4);
+  color: #e53935;
+}
+
 .detail-description {
   font-size: 1rem;
   line-height: 1.7;

@@ -89,6 +89,7 @@ export default {
     deleteConfirm: '確定要刪除此刊登嗎？',
     markAsSold: '標記為已售出',
     markAsSoldConfirm: '確定要將此刊登標記為已售出嗎？',
+    statusSold: '已售出',
     reopenConfirm: '確定要重新上架此刊登嗎？',
     statusUpdated: '狀態已更新'
   },
@@ -152,6 +153,8 @@ export default {
     seller: '賣家',
     contact: '聯絡方式：',
     contactSeller: '詢問賣家',
+    inquireTitle: '詢問賣家',
+    inquireTitleSold: '此刊登已售出',
     messagePlaceholder: '你好，我對這張票有興趣...',
     sendMessage: '送出'
   },

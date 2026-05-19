@@ -241,6 +241,12 @@ function renderListing(listing) {
 
     if (tagsEl) {
         tagsEl.innerHTML = '';
+        if (listing.status === 'sold') {
+            const soldTag = document.createElement('span');
+            soldTag.className = 'detail-tag detail-tag-sold';
+            soldTag.textContent = t('listingForm.statusSold') || '已售出';
+            tagsEl.appendChild(soldTag);
+        }
         if (listing.type) {
             const tag = document.createElement('span');
             tag.className = 'detail-tag';
@@ -252,6 +258,18 @@ function renderListing(listing) {
             urgentTag.className = 'detail-tag detail-tag-urgent';
             urgentTag.textContent = t('listingForm.urgencyUrgent');
             tagsEl.appendChild(urgentTag);
+        }
+    }
+
+    // Hide inquiry form if sold
+    const inquirySection = query('#detail-inquiry-section');
+    const inquireTitle = inquirySection?.querySelector('h2');
+    if (inquirySection) {
+        if (listing.status === 'sold') {
+            inquirySection.hidden = true;
+        } else {
+            inquirySection.hidden = false;
+            if (inquireTitle) inquireTitle.textContent = t('detail.inquireTitle');
         }
     }
 

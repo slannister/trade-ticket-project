@@ -89,6 +89,7 @@ export default {
     deleteConfirm: 'Are you sure you want to delete this listing?',
     markAsSold: 'Mark as Sold',
     markAsSoldConfirm: 'Are you sure you want to mark this listing as sold?',
+    statusSold: 'Sold',
     reopenConfirm: 'Are you sure you want to relist this listing?',
     statusUpdated: 'Status updated'
   },
@@ -152,6 +153,8 @@ export default {
     seller: 'Seller',
     contact: 'Contact: ',
     contactSeller: 'Contact Seller',
+    inquireTitle: 'Contact Seller',
+    inquireTitleSold: 'This listing has been sold',
     messagePlaceholder: 'Hi, I am interested in this ticket...',
     sendMessage: 'Send'
   },
