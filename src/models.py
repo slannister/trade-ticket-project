@@ -44,6 +44,7 @@ class Listing(db.Model):
     description = db.Column(db.Text)
     urgency = db.Column(db.String(20), default="normal")
     images = db.Column(db.JSON, default=list)
+    status = db.Column(db.String(20), default="active")  # active, sold, closed
     owner_id = db.Column(db.String(36), db.ForeignKey("users.id"), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -66,6 +67,7 @@ class Listing(db.Model):
             "description": self.description,
             "urgency": self.urgency,
             "images": self.images or [],
+            "status": self.status or "active",
             "owner_id": self.owner_id,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "owner": {

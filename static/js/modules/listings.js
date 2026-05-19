@@ -22,6 +22,10 @@ export async function deleteListing(id) {
     return listingsApi.deleteListing(id);
 }
 
+export async function updateListingStatus(id, status) {
+    return listingsApi.updateListingStatus(id, status);
+}
+
 export async function uploadImage(file) {
     return listingsApi.uploadImage(file);
 }

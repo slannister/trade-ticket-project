@@ -85,6 +85,27 @@ def delete_listing(listing_id):
     return success(message="Listing deleted")
 
 
+@listings_bp.route("/<listing_id>/status", methods=["PUT"])
+@jwt_required()
+def update_listing_status(listing_id):
+    user_id = get_jwt_identity()
+    listing = ListingService.get_by_id(listing_id)
+
+    if not listing:
+        return error("Listing not found", 404)
+    if listing.owner_id != user_id:
+        return error("Access denied", 403)
+
+    data = request.get_json() or {}
+    status = data.get("status")
+
+    if status not in ["active", "sold", "closed"]:
+        return error("Invalid status. Must be: active, sold, or closed", 400)
+
+    listing = ListingService.update(listing, {"status": status})
+    return success({"listing": listing.to_dict()}, "Status updated")
+
+
 @listings_bp.route("/mine", methods=["GET"])
 @jwt_required()
 def get_my_listings():

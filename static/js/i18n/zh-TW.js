@@ -76,7 +76,11 @@ export default {
     created: '刊登已成功發布！',
     updated: '刊登已更新！',
     deleted: '刊登已刪除',
-    deleteConfirm: '確定要刪除此刊登嗎？'
+    deleteConfirm: '確定要刪除此刊登嗎？',
+    markAsSold: '標記為已售出',
+    markAsSoldConfirm: '確定要將此刊登標記為已售出嗎？',
+    reopenConfirm: '確定要重新上架此刊登嗎？',
+    statusUpdated: '狀態已更新'
   },
 
   // Listing card
@@ -239,6 +243,7 @@ export default {
     loadFailed: '載入失敗，請稍後再試',
     saveFailed: '儲存失敗，請稍後再試',
     deleteFailed: '刪除失敗',
+    updateFailed: '更新失敗',
     sendFailed: '發送失敗'
   }
 };

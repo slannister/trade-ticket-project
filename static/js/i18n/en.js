@@ -76,7 +76,11 @@ export default {
     created: 'Listing published successfully!',
     updated: 'Listing updated!',
     deleted: 'Listing deleted',
-    deleteConfirm: 'Are you sure you want to delete this listing?'
+    deleteConfirm: 'Are you sure you want to delete this listing?',
+    markAsSold: 'Mark as Sold',
+    markAsSoldConfirm: 'Are you sure you want to mark this listing as sold?',
+    reopenConfirm: 'Are you sure you want to relist this listing?',
+    statusUpdated: 'Status updated'
   },
 
   // Listing card
@@ -239,6 +243,7 @@ export default {
     loadFailed: 'Failed to load, please try again',
     saveFailed: 'Failed to save, please try again',
     deleteFailed: 'Failed to delete',
+    updateFailed: 'Failed to update',
     sendFailed: 'Failed to send'
   }
 };

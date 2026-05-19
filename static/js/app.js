@@ -2,7 +2,7 @@ import { formatDateValue, formatDateTimeValue } from './utils/date.js';
 import { showToast, query, queryAll, createElement, removeChildren, show, hide } from './utils/dom.js';
 import { getFilters, setFilter, resetFilters, buildQueryParams } from './modules/filters.js';
 import { getPagination, setPagination, nextPage, prevPage, resetPage } from './modules/pagination.js';
-import { loadListings, loadMyListings, createListing, updateListing, deleteListing, uploadImage } from './modules/listings.js';
+import { loadListings, loadMyListings, createListing, updateListing, deleteListing, updateListingStatus, uploadImage } from './modules/listings.js';
 import { init as initAuth, handleLogin, handleRegister, handleLogout, getCurrentUser, requireAuth } from './modules/auth.js';
 import { init as initFavorites, isFavorite, toggle as toggleFavoriteLocal, syncFromServer, addFavorite, removeFavorite } from './modules/favorites.js';
 import { init as initChat } from './modules/chat.js';
@@ -489,6 +489,7 @@ function createListingCard(listing) {
                     <button class="owner-menu-trigger" type="button" aria-label="${t('edit')}">⋯</button>
                     <div class="owner-menu" role="menu">
                         <button class="owner-menu-item listing-card-edit" type="button" role="menuitem">${t('edit')}</button>
+                        <button class="owner-menu-item listing-card-sold" type="button" role="menuitem">${t('listingForm.markAsSold')}</button>
                         <button class="owner-menu-item listing-card-delete" type="button" role="menuitem">${t('delete')}</button>
                     </div>
                 </div>` : `
@@ -590,6 +591,22 @@ function createListingCard(listing) {
                     await loadListingsView();
                 } catch (err) {
                     showToast(t('errors.deleteFailed'), 'error');
+                }
+            }
+        });
+
+        const soldBtn = card.querySelector('.listing-card-sold');
+        soldBtn?.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const newStatus = listing.status === 'sold' ? 'active' : 'sold';
+            const confirmMsg = newStatus === 'sold' ? t('listingForm.markAsSoldConfirm') : t('listingForm.reopenConfirm');
+            if (confirm(confirmMsg)) {
+                try {
+                    await updateListingStatus(listing.id, newStatus);
+                    showToast(t('listingForm.statusUpdated'), 'success');
+                    await loadListingsView();
+                } catch (err) {
+                    showToast(t('errors.updateFailed'), 'error');
                 }
             }
         });
@@ -888,11 +905,13 @@ async function loadMessagesView() {
                 <button class="message-reply-btn" type="button">${t('messages.reply')}</button>
             `;
             card.addEventListener('click', (e) => {
-                if (e.target.matches('.message-reply-btn') || e.target.closest('.message-reply-btn')) {
-                    import('./modules/chat.js').then(({ openChat }) => {
-                        openChat(msg);
-                    });
+                // Don't open chat if clicking on links or reply button
+                if (e.target.closest('a') || e.target.matches('.message-reply-btn') || e.target.closest('.message-reply-btn')) {
+                    return;
                 }
+                import('./modules/chat.js').then(({ openChat }) => {
+                    openChat(msg);
+                });
             });
         container.appendChild(card);
     });

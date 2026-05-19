@@ -131,6 +131,8 @@ class ListingService:
             listing.urgency = data['urgency']
         if 'images' in data:
             listing.images = data['images']
+        if 'status' in data:
+            listing.status = data['status']
 
         db.session.commit()
         return listing
