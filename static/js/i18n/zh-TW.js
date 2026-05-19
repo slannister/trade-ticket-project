@@ -31,6 +31,10 @@ export default {
   memberProfile: '會員資料',
   logout: '會員登出',
   loginRegister: '登入 / 註冊',
+  sidebar: {
+    collapse: '收起選單',
+    expand: '展開選單'
+  },
 
   // Categories
   category: {

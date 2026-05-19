@@ -31,6 +31,10 @@ export default {
   memberProfile: 'Profile',
   logout: 'Logout',
   loginRegister: 'Login / Register',
+  sidebar: {
+    collapse: 'Collapse',
+    expand: 'Expand'
+  },
 
   // Categories
   category: {
