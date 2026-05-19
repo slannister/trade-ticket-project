@@ -480,7 +480,7 @@ function createListingCard(listing) {
             ${images.length > 0
             ? `<img src="${images[0].url || images[0]}" alt="${listing.title}" loading="lazy"${imagesDataAttr} />`
             : `<span class="listing-card-fallback">${(listing.category || listing.title || t('category.other')).charAt(0).toUpperCase()}</span>`}
-            ${listing.status === 'sold' ? `<div class="listing-card-sold-badge">${t('listing.sold')}</div>` : ''}
+            ${listing.status === 'sold' ? `<div class="listing-card-sold-badge">${t('listingCard.sold')}</div>` : ''}
         </div>
         <div class="listing-card-body">
             <div class="listing-card-title-row">
