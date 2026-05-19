@@ -9,7 +9,10 @@
 <body class="detail-page" data-theme="dark">
   <header class="detail-topbar">
     <a class="detail-back" href="/" data-i18n="backToList">← 返回列表</a>
-    <button id="theme-toggle" class="ghost-button theme-toggle" type="button" aria-label="切換為亮色模式"></button>
+    <div class="topbar-actions">
+      <button class="ghost-button lang-toggle" id="lang-toggle" type="button" aria-label="Switch Language">EN</button>
+      <button id="theme-toggle" class="ghost-button theme-toggle" type="button" aria-label="切換為亮色模式"></button>
+    </div>
   </header>
   <main class="detail-shell">
     <section class="detail-card">
@@ -72,10 +75,22 @@
   <script type="module">
     import * as authApi from '/static/js/api/auth.js';
     import { showToast } from '/static/js/utils/dom.js';
-    import { initI18n, getLocale, t, updateStaticContent } from '/static/js/i18n/index.js';
+    import { initI18n, getLocale, setLocale, t, updateStaticContent } from '/static/js/i18n/index.js';
 
     initI18n();
     updateStaticContent();
+
+    // Language toggle
+    const langToggle = document.getElementById('lang-toggle');
+    if (langToggle) {
+        langToggle.addEventListener('click', () => {
+            const current = getLocale();
+            const next = current.startsWith('zh') ? 'en' : 'zh-TW';
+            setLocale(next);
+            updateStaticContent();
+            langToggle.textContent = next.startsWith('zh') ? 'EN' : '中';
+        });
+    }
 
     const profileForm = document.getElementById('profile-form');
     const passwordForm = document.getElementById('password-form');
