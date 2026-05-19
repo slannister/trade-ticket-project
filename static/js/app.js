@@ -61,6 +61,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initChat(loadMessagesView);
     initThemeToggle();
     initLangToggle();
+    initSidebarToggle();
     initMemberModal();
     initImageModal();
     bindEvents();
@@ -105,6 +106,25 @@ function initLangToggle() {
         renderListings();
         updateLabel();
     });
+}
+
+function initSidebarToggle() {
+    const toggle = query('#sidebar-toggle');
+    const sidebar = query('.app-sidebar');
+    if (!toggle || !sidebar) return;
+
+    toggle.addEventListener('click', () => {
+        sidebar.classList.toggle('is-collapsed');
+        const isCollapsed = sidebar.classList.contains('is-collapsed');
+        toggle.setAttribute('aria-label', isCollapsed ? t('sidebar.expand') : t('sidebar.collapse'));
+        localStorage.setItem('sidebarCollapsed', isCollapsed);
+    });
+
+    // Restore state
+    const saved = localStorage.getItem('sidebarCollapsed');
+    if (saved === 'true') {
+        sidebar.classList.add('is-collapsed');
+    }
 }
 
 /* ── Member Modal ── */

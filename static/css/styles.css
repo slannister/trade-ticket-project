@@ -100,15 +100,87 @@ body::before {
 
 .sidebar-brand {
   display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 
-.sidebar-brand h1 {
-  margin: 0;
+.sidebar-brand-link {
   font-size: 1.45rem;
   font-weight: 700;
   letter-spacing: 0.04em;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.sidebar-toggle {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.4rem 0.5rem;
+  font-size: 1.1rem;
+  line-height: 1;
+  transition: all 0.2s ease;
+}
+
+.sidebar-toggle:hover {
+  border-color: var(--border-hover);
+  color: var(--text);
+}
+
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 18px;
+}
+
+.hamburger span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: currentColor;
+  border-radius: 1px;
+  transition: all 0.3s ease;
+}
+
+.app-sidebar.is-collapsed {
+  width: 60px;
+  padding: 22px 12px;
+  transition: all 0.3s ease;
+}
+
+.app-sidebar.is-collapsed .sidebar-brand-link {
+  font-size: 0.9rem;
+  display: none;
+}
+
+.app-sidebar.is-collapsed .sidebar-actions,
+.app-sidebar.is-collapsed .sidebar-nav,
+.app-sidebar.is-collapsed .sidebar-divider,
+.app-sidebar.is-collapsed .sidebar-personal-label,
+.app-sidebar.is-collapsed .sidebar-footer {
+  display: none;
+  transition: all 0.3s ease;
+}
+
+.app-sidebar.is-collapsed .sidebar-toggle {
+  margin: 0 auto;
+}
+
+.app-sidebar.is-collapsed .hamburger span:nth-child(1) {
+  transform: rotate(45deg) translate(5px, 5px);
+}
+
+.app-sidebar.is-collapsed .hamburger span:nth-child(2) {
+  opacity: 0;
+}
+
+.app-sidebar.is-collapsed .hamburger span:nth-child(3) {
+  transform: rotate(-45deg) translate(4px, -4px);
+}
   text-transform: uppercase;
 }
 
