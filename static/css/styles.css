@@ -146,10 +146,13 @@ body::before {
   transition: all 0.3s ease;
 }
 
+.app-sidebar {
+  transition: width 0.3s ease, padding 0.3s ease;
+}
+
 .app-sidebar.is-collapsed {
   width: 60px;
   padding: 22px 12px;
-  transition: all 0.3s ease;
 }
 
 .app-sidebar.is-collapsed .sidebar-brand-link {
@@ -157,17 +160,31 @@ body::before {
   display: none;
 }
 
-.app-sidebar.is-collapsed .sidebar-actions,
 .app-sidebar.is-collapsed .sidebar-nav,
+.app-sidebar.is-collapsed .sidebar-actions,
 .app-sidebar.is-collapsed .sidebar-divider,
 .app-sidebar.is-collapsed .sidebar-personal-label,
 .app-sidebar.is-collapsed .sidebar-footer {
-  display: none;
-  transition: all 0.3s ease;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.app-sidebar .sidebar-nav,
+.app-sidebar .sidebar-actions,
+.app-sidebar .sidebar-divider,
+.app-sidebar .sidebar-personal-label,
+.app-sidebar .sidebar-footer {
+  transition: opacity 0.3s ease;
 }
 
 .app-sidebar.is-collapsed .sidebar-toggle {
   margin: 0 auto;
+}
+
+/* Hamburger to X animation - works both ways */
+.app-sidebar .hamburger span {
+  transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
 .app-sidebar.is-collapsed .hamburger span:nth-child(1) {
