@@ -7,6 +7,8 @@ let chatPanel = null;
 let currentConversation = null;
 let chatMessages = [];
 let onMessageSent = null;
+let refreshInterval = null;
+const REFRESH_INTERVAL = 5000; // Refresh every 5 seconds
 
 export function init(onSentCallback) {
     onMessageSent = onSentCallback;
@@ -72,7 +74,7 @@ export async function openChat(inquiry) {
     currentConversation._isOwner = isOwner;
     currentConversation._isSender = isSender;
 
-    // Load replies
+    // Always reload replies to get latest messages
     try {
         const result = await inquiriesApi.getReplies(inquiry.id);
         const replies = result && result.inquiries ? result.inquiries : [];
@@ -90,6 +92,7 @@ export async function openChat(inquiry) {
 
     chatPanel.hidden = false;
     chatPanel.classList.add('is-open');
+    startAutoRefresh();
 
     const chatInput = query('.chat-input');
     if (chatInput) {
@@ -103,6 +106,34 @@ export function closeChat() {
         chatPanel.classList.remove('is-open');
     }
     currentConversation = null;
+    stopAutoRefresh();
+}
+
+export async function refreshMessages() {
+    if (!currentConversation) return;
+    try {
+        const result = await inquiriesApi.getReplies(currentConversation.id);
+        const replies = result && result.inquiries ? result.inquiries : [];
+        const newMessages = [currentConversation, ...replies];
+        if (newMessages.length !== chatMessages.length) {
+            chatMessages = newMessages;
+            renderChatMessages();
+        }
+    } catch (err) {
+        // Silently fail on refresh errors
+    }
+}
+
+function startAutoRefresh() {
+    stopAutoRefresh();
+    refreshInterval = setInterval(refreshMessages, REFRESH_INTERVAL);
+}
+
+function stopAutoRefresh() {
+    if (refreshInterval) {
+        clearInterval(refreshInterval);
+        refreshInterval = null;
+    }
 }
 
 export async function sendChatMessage() {
@@ -128,6 +159,8 @@ export async function sendChatMessage() {
         if (onMessageSent) {
             onMessageSent();
         }
+        // Refresh to get latest messages
+        await refreshMessages();
     } catch (err) {
         showToast(err.message || '發送失敗', 'error');
     }
