@@ -3,36 +3,36 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>會員資料 - TikSwap</title>
+  <title data-i18n="profile.pageTitle">會員資料 - TikSwap</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
 </head>
 <body class="detail-page" data-theme="dark">
   <header class="detail-topbar">
-    <a class="detail-back" href="/">← 返回列表</a>
+    <a class="detail-back" href="/" data-i18n="backToList">← 返回列表</a>
     <button id="theme-toggle" class="ghost-button theme-toggle" type="button" aria-label="切換為亮色模式"></button>
   </header>
   <main class="detail-shell">
     <section class="detail-card">
       <div class="detail-content">
         <div class="detail-header">
-          <h1>會員資料</h1>
+          <h1 data-i18n="profile.title">會員資料</h1>
         </div>
 
         <form id="profile-form" class="profile-form">
           <div class="field">
-            <label for="profile-email">電子郵件</label>
+            <label for="profile-email" data-i18n="profile.email">電子郵件</label>
             <input type="email" id="profile-email" name="email" disabled />
           </div>
           <div class="field">
-            <label for="profile-display-name">顯示名稱</label>
-            <input type="text" id="profile-display-name" name="display_name" placeholder="你的顯示名稱" />
+            <label for="profile-display-name" data-i18n="profile.displayName">顯示名稱</label>
+            <input type="text" id="profile-display-name" name="display_name" data-i18n-placeholder="profile.displayNamePlaceholder" placeholder="你的顯示名稱" />
           </div>
           <div class="field">
-            <label for="profile-phone">電話號碼（選填）</label>
-            <input type="tel" id="profile-phone" name="phone" placeholder="0912345678" />
+            <label for="profile-phone" data-i18n="profile.phone">電話號碼（選填）</label>
+            <input type="tel" id="profile-phone" name="phone" data-i18n-placeholder="profile.phonePlaceholder" placeholder="0912345678" />
           </div>
           <div class="form-actions">
-            <button type="submit" class="primary">儲存修改</button>
+            <button type="submit" class="primary" data-i18n="profile.saveChanges">儲存修改</button>
           </div>
         </form>
 
@@ -43,24 +43,24 @@
     <section class="detail-card">
       <div class="detail-content">
         <div class="detail-header">
-          <h2>修改密碼</h2>
+          <h2 data-i18n="profile.passwordSection">修改密碼</h2>
         </div>
 
         <form id="password-form" class="profile-form">
           <div class="field">
-            <label for="current-password">目前密碼</label>
+            <label for="current-password" data-i18n="profile.currentPassword">目前密碼</label>
             <input type="password" id="current-password" name="current_password" required />
           </div>
           <div class="field">
-            <label for="new-password">新密碼</label>
-            <input type="password" id="new-password" name="new_password" placeholder="至少 6 碼" required />
+            <label for="new-password" data-i18n="profile.newPassword">新密碼</label>
+            <input type="password" id="new-password" name="new_password" data-i18n-placeholder="profile.newPasswordPlaceholder" placeholder="至少 6 碼" required />
           </div>
           <div class="field">
-            <label for="confirm-password">確認新密碼</label>
-            <input type="password" id="confirm-password" name="confirm_password" placeholder="再次輸入新密碼" required />
+            <label for="confirm-password" data-i18n="profile.confirmPassword">確認新密碼</label>
+            <input type="password" id="confirm-password" name="confirm_password" data-i18n-placeholder="profile.confirmPasswordPlaceholder" placeholder="再次輸入新密碼" required />
           </div>
           <div class="form-actions">
-            <button type="submit" class="primary">更新密碼</button>
+            <button type="submit" class="primary" data-i18n="profile.updatePassword">更新密碼</button>
           </div>
         </form>
 
@@ -72,6 +72,10 @@
   <script type="module">
     import * as authApi from '/static/js/api/auth.js';
     import { showToast } from '/static/js/utils/dom.js';
+    import { initI18n, getLocale, t, updateStaticContent } from '/static/js/i18n/index.js';
+
+    initI18n();
+    updateStaticContent();
 
     const profileForm = document.getElementById('profile-form');
     const passwordForm = document.getElementById('password-form');
@@ -86,7 +90,7 @@
         document.getElementById('profile-display-name').value = user.display_name || '';
         document.getElementById('profile-phone').value = user.phone || '';
       } catch (err) {
-        showToast('載入會員資料失敗', 'error');
+        showToast(t('profile.loadFailed') || '載入會員資料失敗', 'error');
       }
     }
 
@@ -99,11 +103,11 @@
 
       try {
         const data = await authApi.updateProfile({ display_name: displayName, phone });
-        showToast('會員資料已更新', 'success');
+        showToast(t('profile.profileUpdated'), 'success');
         profileForm.reset();
         await loadProfile();
       } catch (err) {
-        profileMessage.textContent = err.message || '更新失敗';
+        profileMessage.textContent = err.message || t('profile.updateFailed') || '更新失敗';
         profileMessage.className = 'member-message member-message-error';
         profileMessage.hidden = false;
       }
@@ -118,7 +122,7 @@
       const confirmPassword = document.getElementById('confirm-password').value;
 
       if (newPassword !== confirmPassword) {
-        passwordMessage.textContent = '兩次輸入的密碼不一致';
+        passwordMessage.textContent = t('profile.passwordMismatch');
         passwordMessage.className = 'member-message member-message-error';
         passwordMessage.hidden = false;
         return;
@@ -126,10 +130,10 @@
 
       try {
         await authApi.updatePassword(currentPassword, newPassword);
-        showToast('密碼已更新', 'success');
+        showToast(t('profile.passwordUpdated'), 'success');
         passwordForm.reset();
       } catch (err) {
-        passwordMessage.textContent = err.message || '更新失敗';
+        passwordMessage.textContent = err.message || t('profile.updateFailed') || '更新失敗';
         passwordMessage.className = 'member-message member-message-error';
         passwordMessage.hidden = false;
       }

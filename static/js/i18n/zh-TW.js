@@ -11,6 +11,7 @@ export default {
   edit: '編輯',
   close: '關閉',
   back: '返回',
+  backToList: '← 返回列表',
   submit: '送出',
   search: '搜尋',
   clear: '清除',
@@ -22,6 +23,11 @@ export default {
   myListings: '我的刊登',
   myFavorites: '我的最愛',
   myMessages: '我的訊息',
+  nav: {
+    messages: '我的訊息',
+    myListings: '我的刊登',
+    myFavorites: '我的最愛'
+  },
   memberProfile: '會員資料',
   logout: '會員登出',
   loginRegister: '登入 / 註冊',
@@ -186,6 +192,7 @@ export default {
 
   // Profile
   profile: {
+    pageTitle: '會員資料 - TikSwap',
     title: '會員資料',
     email: '電子郵件',
     displayName: '顯示名稱',
@@ -197,8 +204,14 @@ export default {
     passwordSection: '修改密碼',
     currentPassword: '目前密碼',
     newPassword: '新密碼',
+    newPasswordPlaceholder: '至少 6 碼',
+    confirmPassword: '確認新密碼',
+    confirmPasswordPlaceholder: '再次輸入新密碼',
     updatePassword: '更新密碼',
-    passwordUpdated: '密碼已更新'
+    passwordUpdated: '密碼已更新',
+    passwordMismatch: '兩次輸入的密碼不一致',
+    loadFailed: '載入會員資料失敗',
+    updateFailed: '更新失敗'
   },
 
   // Favorites

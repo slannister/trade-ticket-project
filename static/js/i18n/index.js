@@ -368,6 +368,20 @@ export function updateStaticContent() {
 
   const backToHomeLink = document.querySelector('#reset-success-container a');
   if (backToHomeLink) backToHomeLink.textContent = isZh ? '返回首頁' : 'Back to Home';
+
+  // data-i18n attributes
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.dataset.i18n;
+    const text = t(key);
+    if (text && text !== key) el.textContent = text;
+  });
+
+  // data-i18n-placeholder attributes
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const key = el.dataset.i18nPlaceholder;
+    const text = t(key);
+    if (text && text !== key) el.placeholder = text;
+  });
 }
 
 export { SUPPORTED };

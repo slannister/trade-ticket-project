@@ -637,6 +637,79 @@ body[data-theme='light'] .account-menu-item {
     gap: 1rem;
   }
 
+  .listing-grid {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 540px) {
+  .app-sidebar {
+    padding: 16px;
+  }
+
+  .sidebar-brand h1 {
+    font-size: 1.2rem;
+  }
+
+  .listing-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.8rem;
+  }
+
+  .listing-card {
+    padding: 1rem;
+  }
+
+  .listing-card-title {
+    font-size: 0.95rem;
+  }
+
+  .listing-card-meta {
+    font-size: 0.75rem;
+  }
+
+  .listing-card-description {
+    display: none;
+  }
+
+  .listing-card-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .listing-card-price {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .price-label {
+    font-size: 0.7rem;
+  }
+
+  .price-value {
+    font-size: 1rem;
+  }
+
+  .listing-card-favorite {
+    width: 32px;
+    height: 32px;
+  }
+
+  .panel-heading h2 {
+    font-size: 1.25rem;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions .primary {
+    width: 100%;
+  }
+}
+
   .header-top {
     flex-direction: column;
     align-items: flex-start;

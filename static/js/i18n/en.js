@@ -11,6 +11,7 @@ export default {
   edit: 'Edit',
   close: 'Close',
   back: 'Back',
+  backToList: '← Back to List',
   submit: 'Submit',
   search: 'Search',
   clear: 'Clear',
@@ -22,6 +23,11 @@ export default {
   myListings: 'My Listings',
   myFavorites: 'My Favorites',
   myMessages: 'My Messages',
+  nav: {
+    messages: 'My Messages',
+    myListings: 'My Listings',
+    myFavorites: 'My Favorites'
+  },
   memberProfile: 'Profile',
   logout: 'Logout',
   loginRegister: 'Login / Register',
@@ -186,6 +192,7 @@ export default {
 
   // Profile
   profile: {
+    pageTitle: 'Profile - TikSwap',
     title: 'Profile',
     email: 'Email',
     displayName: 'Display Name',
@@ -197,8 +204,14 @@ export default {
     passwordSection: 'Change Password',
     currentPassword: 'Current Password',
     newPassword: 'New Password',
+    newPasswordPlaceholder: 'At least 6 characters',
+    confirmPassword: 'Confirm Password',
+    confirmPasswordPlaceholder: 'Enter again',
     updatePassword: 'Update Password',
-    passwordUpdated: 'Password updated'
+    passwordUpdated: 'Password updated',
+    passwordMismatch: 'Passwords do not match',
+    loadFailed: 'Failed to load profile',
+    updateFailed: 'Update failed'
   },
 
   // Favorites

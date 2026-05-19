@@ -559,7 +559,6 @@ function createListingCard(listing) {
                 <span class="price-label">${t('listingCard.priceLabel')}</span>
                 <strong class="price-value">${listing.buy_now ? `NT$ ${Number(listing.buy_now).toLocaleString()}` : listing.face_value ? `${t('detail.faceValue')} NT$ ${Number(listing.face_value).toLocaleString()}` : t('listingCard.priceNegotiable')}</strong>
             </div>
-            <button class="listing-card-action" data-listing-id="${listing.id}">${t('listingCard.viewDetails')}</button>
         </div>
     `;
 
@@ -568,12 +567,6 @@ function createListingCard(listing) {
         if (!e.target.matches('button') && !e.target.closest('button')) {
             window.location.href = `/detail?id=${listing.id}`;
         }
-    });
-
-    const actionBtn = card.querySelector('.listing-card-action');
-    actionBtn?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        window.location.href = `/detail?id=${listing.id}`;
     });
 
     // Favorite button handler
