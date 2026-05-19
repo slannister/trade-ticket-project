@@ -1,8 +1,21 @@
-# 票券交易交流站（TikSwap）
+# TikSwap - 票券交易交流站
 
-## 產品概述
+![Python](https://img.shields.io/badge/Python-3.7+-blue.svg)
+![Flask](https://img.shields.io/badge/Flask-3.0-green.svg)
+![SQLAlchemy](https://img.shields.io/badge/SQLAlchemy-3.1-orange.svg)
 
 輕量級的票券與收藏品交易平台，支援競標定價或以交換為導向的刊登方式。透過結構化的出售、快速交換與透明的談判紀錄，取代在社群平台上零散的私訊交易。
+
+## 功能特色
+
+- **多語系支援** - 繁體中文 / 英文一鍵切換
+- **即時聊天** - 買賣雙方可直接在站內對話
+- **未讀追蹤** - 訊息已讀/未讀狀態，紅色標記提醒
+- **我的最愛** - 收藏感興趣的刊登
+- **我的刊登** - 管理已發布的票券
+- **我的訊息** - 集中管理所有買家詢問
+- **刊登管理** - 可標記為已售出
+- **深色/淺色主題** - 一鍵切換
 
 ## 技術架構
 
@@ -15,29 +28,30 @@
 
 ### 前端
 - **原生 JavaScript**（無框架）
-- **模組化架構**: Utils / API Client / Modules 三層分離
-- **CSS**: 原生 CSS Variables（支援深色/淺色主題）
+- **模組化架構**: Utils / API Client / Modules / i18n 四層分離
+- **CSS**: 原生 CSS Variables（支援深色/淺色主題切換）
+- **多語系**: i18n 模組（static/js/i18n/）
 
-### 專案結構
+## 專案結構
 
 ```
 trade-ticket-project/
-├── app.py                      # Flask 主應用工廠
+├── run.py                      # 應用程式入口
 ├── config.py                   # 環境變數設定
 ├── requirements.txt           # Python 依賴
 │
 ├── src/                        # 後端 src
 │   ├── extensions.py          # Flask extensions（db, jwt, bcrypt）
-│   ├── models.py               # SQLAlchemy Models（M）
+│   ├── models.py               # SQLAlchemy Models
 │   │
-│   ├── services/              # 商業邏輯層（BL）
+│   ├── services/              # 商業邏輯層
 │   │   ├── __init__.py
 │   │   ├── auth_service.py    # 認證服務
 │   │   ├── listing_service.py # 刊登服務
 │   │   ├── inquiry_service.py # 詢問服務
-│   │   └── favorite_service.py
+│   │   └── favorite_service.py # 最愛服務
 │   │
-│   ├── routes/                # 控制器層（C）
+│   ├── routes/                # 路由控制器
 │   │   ├── __init__.py        # 路由註冊
 │   │   ├── auth.py            # 認證路由
 │   │   ├── listings.py        # 刊登路由
@@ -51,7 +65,7 @@ trade-ticket-project/
 │
 ├── static/                     # 前端靜態資源
 │   ├── css/
-│   │   └── styles.css
+│   │   └── styles.css         # 全域樣式
 │   └── js/
 │       ├── app.js             # 主頁入口
 │       ├── detail.js          # 詳情頁入口
@@ -61,12 +75,17 @@ trade-ticket-project/
 │       │   ├── listings.js
 │       │   └── inquiries.js
 │       ├── modules/           # 功能模組
-│       │   ├── auth.js
-│       │   ├── listings.js
-│       │   ├── favorites.js
-│       │   ├── messages.js
-│       │   ├── filters.js
-│       │   └── pagination.js
+│       │   ├── auth.js        # 登入/登出/驗證
+│       │   ├── chat.js        # 即時聊天面板
+│       │   ├── listings.js    # 刊登管理
+│       │   ├── favorites.js   # 我的最愛
+│       │   ├── messages.js   # 訊息列表
+│       │   ├── filters.js    # 篩選器
+│       │   └── pagination.js # 分頁
+│       ├── i18n/              # 多語系
+│       │   ├── index.js       # i18n 主模組
+│       │   ├── en.js          # 英文翻譯
+│       │   └── zh-TW.js       # 繁中翻譯
 │       └── utils/             # 工具函式
 │           ├── date.js
 │           ├── dom.js
@@ -74,8 +93,13 @@ trade-ticket-project/
 │           └── toast.js
 │
 ├── templates/                  # Jinja2 模板
-│   ├── index.html
-│   └── detail.html
+│   ├── index.html             # 主頁
+│   ├── detail.html            # 詳情頁
+│   ├── profile.html           # 會員資料頁
+│   └── reset_password.html    # 重設密碼頁
+│
+├── instance/                   # 資料庫目錄
+│   └── tikswap.db             # SQLite 資料庫
 │
 └── uploads/                   # 圖片上傳目錄
     └── listings/
@@ -90,22 +114,7 @@ trade-ticket-project/
 │   Routes    │ ──▶ │  Services   │ ──▶ │   Models    │
 │ (Controller)│     │    (BL)     │     │     (M)     │
 └─────────────┘     └─────────────┘     └─────────────┘
-       │                   │                   │
-       │            ┌──────┴──────┐            │
-       │            │             │            │
-       ▼            ▼             ▼            ▼
-   HTTP Request  Business    Data Access    SQLAlchemy
-   Response      Logic       Operations     Models
 ```
-
-### 分層職責
-
-| 層級 | 職責 | 範例 |
-|------|------|------|
-| **Routes (C)** | HTTP 請求處理、引數驗證、響應格式化 | `@auth_bp.route("/login")` |
-| **Services (BL)** | 商業邏輯、資料校驗、跨表操作 | `AuthService.login()` |
-| **Models (M)** | 資料結構、ORM 映射、`to_dict()` 序列化 | `User.query.filter_by()` |
-| **Utils** | 共用工具：響應格式、驗證器、日期處理 | `success()`, `validate_email()` |
 
 ## API 端點
 
@@ -116,37 +125,50 @@ trade-ticket-project/
 | POST | `/login` | 登入 | - |
 | POST | `/logout` | 登出 | JWT |
 | GET | `/me` | 當前用戶 | JWT |
+| PUT | `/profile` | 更新會員資料 | JWT |
 | POST | `/password/reset` | 重設密碼 | - |
+| POST | `/password/update` | 更新密碼 | JWT |
 
 ### 刊登 `/api/listings`
 | Method | Endpoint | 說明 | Auth |
 |--------|----------|------|------|
 | GET | `` | 列表（分頁/篩選） | - |
 | POST | `` | 建立刊登 | JWT |
+| GET | `/mine` | 我的刊登 | JWT |
+| GET | `/favorites` | 我的最愛 | JWT |
 | GET | `/<id>` | 詳情 | - |
 | PUT | `/<id>` | 更新 | JWT |
-| DELETE | `/id>` | 刪除 | JWT |
-| GET | `/mine` | 我的刊登 | JWT |
+| PUT | `/<id>/status` | 更新狀態（sold/closed） | JWT |
+| DELETE | `/<id>` | 刪除 | JWT |
 
 ### 詢問 `/api/inquiries`
 | Method | Endpoint | 說明 | Auth |
 |--------|----------|------|------|
-| GET | `` | 我的訊息 | JWT |
+| GET | `` | 我的訊息（所有對話） | JWT |
 | POST | `` | 發送詢問 | - |
+| POST | `/<id>/reply` | 回覆訊息 | JWT |
+| GET | `/<id>/replies` | 取得回覆列表 | JWT |
+| GET | `/unread-count` | 未讀數量 | JWT |
+| PUT | `/<id>/read` | 標記為已讀 | JWT |
 
 ### 最愛 `/api/favorites`
 | Method | Endpoint | 說明 | Auth |
 |--------|----------|------|------|
-| GET | `` | 我的最愛 | JWT |
+| GET | `` | 我的最愛列表 | JWT |
 | POST | `/<listing_id>` | 加入最愛 | JWT |
 | DELETE | `/<listing_id>` | 移除最愛 | JWT |
+
+### 上傳 `/api/upload`
+| Method | Endpoint | 說明 | Auth |
+|--------|----------|------|------|
+| POST | `` | 上傳圖片 | JWT |
 
 ## 本機執行
 
 ```bash
 cd trade-ticket-project
 pip install -r requirements.txt
-python app.py
+python run.py
 ```
 
 瀏覽器開啟 http://localhost:5000
@@ -156,7 +178,8 @@ python app.py
 ```bash
 SECRET_KEY=your-secret-key
 JWT_SECRET_KEY=your-jwt-secret
-DATABASE_URL=sqlite:///tikswap.db
+DATABASE_URL=sqlite:///instance/tikswap.db
+UPLOAD_FOLDER=uploads
 ```
 
 ## 未來增強方向
@@ -166,4 +189,4 @@ DATABASE_URL=sqlite:///tikswap.db
 - [ ] 推播通知
 - [ ] 多幣別與面額比對
 - [ ] 行動版 UI 優化
-- [ ] 多語系（中文、英文）
+- [ ] 更多語系支援
