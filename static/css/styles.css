@@ -1421,6 +1421,24 @@ body[data-theme='light'] .filter-search-tag {
   z-index: 3;
 }
 
+.listing-card-sold-badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-15deg);
+  background: #e53935;
+  color: #fff;
+  padding: 0.5rem 2rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  z-index: 4;
+  pointer-events: none;
+}
+
 .listing-card-gallery {
   position: absolute;
   right: 16px;

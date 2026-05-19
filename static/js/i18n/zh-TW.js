@@ -89,7 +89,8 @@ export default {
     noDescription: '暫無補充資訊。',
     published: '發佈時間：',
     priceNegotiable: '面議',
-    priceLabel: '價格'
+    priceLabel: '價格',
+    sold: '已售出'
   },
 
   // Filters

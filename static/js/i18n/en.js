@@ -89,7 +89,8 @@ export default {
     noDescription: 'No additional information.',
     published: 'Published: ',
     priceNegotiable: 'Negotiable',
-    priceLabel: 'Price'
+    priceLabel: 'Price',
+    sold: 'SOLD'
   },
 
   // Filters
