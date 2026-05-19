@@ -134,6 +134,13 @@ export async function openChat(inquiry) {
 
     chatPanel.hidden = false;
     chatPanel.classList.add('is-open');
+
+    // Scroll to bottom after panel is visible
+    requestAnimationFrame(() => {
+        const container = query('#chat-messages-container');
+        if (container) container.scrollTop = container.scrollHeight;
+    });
+
     startAutoRefresh();
 
     const chatInput = query('.chat-input');
