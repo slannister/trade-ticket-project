@@ -50,7 +50,7 @@ function getCategoryBackground(category) {
 }
 
 let listings = [];
-let activeCategory = 'all';
+let activeCategory = sessionStorage.getItem('activeCategory') || 'all';
 let editingListingId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -65,6 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initImageModal();
     bindEvents();
     await loadInitialData();
+    restoreViewState();
 });
 
 /* ── Theme Toggle ── */
@@ -242,6 +243,53 @@ function initMemberModal() {
             closeMemberModal();
         }
     });
+}
+
+/* ── Restore View State ── */
+function restoreViewState() {
+    const savedCategory = sessionStorage.getItem('activeCategory');
+    if (savedCategory && savedCategory !== 'all') {
+        activeCategory = savedCategory;
+        const sidebarButtons = queryAll('.sidebar-nav button[data-category]');
+        sidebarButtons.forEach(btn => {
+            btn.classList.remove('is-active');
+            btn.setAttribute('aria-pressed', 'false');
+            if (btn.dataset.category === savedCategory) {
+                btn.classList.add('is-active');
+                btn.setAttribute('aria-pressed', 'true');
+            }
+        });
+        const panelTitle = query('#category-panel-title');
+        if (panelTitle) {
+            const btn = query(`.sidebar-nav button[data-category="${savedCategory}"]`);
+            if (btn) panelTitle.textContent = btn.querySelector('span:last-child')?.textContent || t('category.all');
+        }
+
+        // Handle special views
+        const categoryPanel = query('#category-panel');
+        const formPanel = query('#listing-form-panel');
+        const messagesPanel = query('#messages-panel');
+
+        if (savedCategory === 'messages') {
+            hide(categoryPanel);
+            hide(formPanel);
+            show(messagesPanel);
+            loadMessagesView();
+        } else if (savedCategory === 'my-listings') {
+            hide(messagesPanel);
+            show(categoryPanel);
+            loadMyListingsView();
+        } else if (savedCategory === 'favorites') {
+            hide(messagesPanel);
+            show(categoryPanel);
+            loadFavoritesView();
+        } else {
+            hide(messagesPanel);
+            show(categoryPanel);
+            resetPage();
+            loadListingsView();
+        }
+    }
 }
 
 /* ── Image Modal ── */
@@ -759,6 +807,7 @@ function bindEvents() {
     sidebarButtons.forEach(btn => {
         btn.addEventListener('click', () => {
             activeCategory = btn.dataset.category;
+            sessionStorage.setItem('activeCategory', activeCategory);
 
             // Update active state
             sidebarButtons.forEach(b => {
@@ -896,13 +945,18 @@ async function loadMessagesView() {
         messages.forEach(msg => {
             const card = createElement('div', { className: 'message-item' });
             const listingInfo = msg.listing ? `<a href="/detail?id=${msg.listing.id}" class="message-listing-link">${msg.listing.title}</a>` : '';
+            const displayMessage = msg.latestMessage || msg.message;
+            const displayTime = msg.latestTime || msg.created_at;
+            const replyTag = msg.unreadReplyCount > 0 ? `<span class="message-reply-tag">+${msg.unreadReplyCount}則未讀</span>` : '';
+            if (!msg.read) card.classList.add('is-unread');
             card.innerHTML = `
                 <div class="message-header">
                     <span class="message-sender">${msg.sender_contact || 'Anonymous'}</span>
-                    <span class="message-time">${formatDateTimeValue(msg.created_at)}</span>
+                    <span class="message-time">${formatDateTimeValue(displayTime)}</span>
                 </div>
                 ${listingInfo ? `<div class="message-listing">${listingInfo}</div>` : ''}
-                <p class="message-body">${msg.message}</p>
+                <p class="message-body">${displayMessage}</p>
+                ${replyTag}
                 <button class="message-reply-btn" type="button">${t('messages.reply')}</button>
             `;
             card.addEventListener('click', (e) => {

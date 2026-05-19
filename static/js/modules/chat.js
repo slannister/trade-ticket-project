@@ -33,6 +33,7 @@ function stopBadgePoll() {
 
 async function updateUnreadBadge() {
     const badge = query('#messages-badge');
+    const msgBtn = query('.sidebar-personal[data-category="messages"]');
     if (!badge) return;
 
     try {
@@ -41,8 +42,10 @@ async function updateUnreadBadge() {
         if (count > 0) {
             badge.textContent = count > 99 ? '99+' : count;
             badge.hidden = false;
+            msgBtn?.classList.add('has-unread');
         } else {
             badge.hidden = true;
+            msgBtn?.classList.remove('has-unread');
         }
     } catch (err) {
         // Silently fail

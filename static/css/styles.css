@@ -221,6 +221,17 @@ body[data-theme='light'] .sidebar-nav button:hover .nav-indicator {
   margin-left: auto;
 }
 
+.sidebar-personal.has-unread {
+  background: rgba(229, 57, 53, 0.15);
+  border-color: rgba(229, 57, 53, 0.4);
+  animation: pulse-unread 2s ease-in-out infinite;
+}
+
+@keyframes pulse-unread {
+  0%, 100% { box-shadow: none; }
+  50% { box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.3); }
+}
+
 .sidebar-footer {
   margin-top: auto;
   font-size: 0.75rem;
@@ -457,6 +468,7 @@ body[data-theme='light'] .account-menu-item {
   gap: 0.75rem;
   flex-wrap: wrap;
   align-items: center;
+  margin-top: 1rem;
 }
 
 .form-actions .primary {
@@ -3252,6 +3264,25 @@ body[data-theme='light'] .member-tab-desc {
   white-space: pre-wrap;
   line-height: 1.6;
   color: var(--text);
+}
+
+.message-reply-tag {
+  font-size: 0.75rem;
+  color: #e53935;
+  background: rgba(229, 57, 53, 0.1);
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.message-item.is-unread {
+  border-left: 3px solid #e53935;
+  background: rgba(229, 57, 53, 0.05);
+}
+
+.message-item.is-unread .message-body,
+.message-item.is-unread .message-sender {
+  font-weight: 700;
 }
 
 .message-item {

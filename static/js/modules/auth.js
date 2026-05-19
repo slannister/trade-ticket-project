@@ -43,6 +43,7 @@ export async function handleLogin(email, password) {
     currentUser = data.user;
     authApi.setCurrentUser(currentUser);
     if (onAuthChange) onAuthChange(currentUser);
+    window.location.href = '/';
     return data;
 }
 
@@ -60,6 +61,7 @@ export async function handleLogout() {
     authApi.setCurrentUser(null);
     localStorage.removeItem('favorites');
     if (onAuthChange) onAuthChange(currentUser);
+    window.location.href = '/';
 }
 
 export function requireAuth(reason = '') {

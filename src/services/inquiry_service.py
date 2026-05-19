@@ -114,16 +114,17 @@ class InquiryService:
         from src.models import Listing
         count = 0
 
-        # Count inquiries on user's listings that are unread
+        # Count inquiries on user's listings that are unread (from senders, not user themselves)
         owned_inquiries = Inquiry.query.filter(
             Inquiry.parent_id == None,
             Inquiry.read == False,
-            Listing.owner_id == user_id
+            Listing.owner_id == user_id,
+            Inquiry.sender_id != user_id
         ).join(Listing).all()
 
         count += len(owned_inquiries)
 
-        # Count user's sent inquiries that have unread replies
+        # Count user's sent inquiries that have unread replies (from others, not self)
         sent_inquiries = Inquiry.query.filter(
             Inquiry.sender_id == user_id,
             Inquiry.parent_id == None
@@ -132,7 +133,8 @@ class InquiryService:
         for inq in sent_inquiries:
             replies = Inquiry.query.filter(
                 Inquiry.parent_id == inq.id,
-                Inquiry.read == False
+                Inquiry.read == False,
+                Inquiry.sender_id != user_id
             ).all()
             if replies:
                 count += 1
