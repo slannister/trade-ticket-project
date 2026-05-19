@@ -52,7 +52,7 @@ function attachChatListeners() {
     });
 }
 
-export function openChat(inquiry) {
+export async function openChat(inquiry) {
     if (!inquiry || !inquiry.listing) {
         showToast('無法開啟對話', 'error');
         return;
@@ -71,7 +71,15 @@ export function openChat(inquiry) {
     currentConversation = inquiry;
     currentConversation._isOwner = isOwner;
     currentConversation._isSender = isSender;
-    chatMessages = [inquiry];
+
+    // Load replies
+    try {
+        const result = await inquiriesApi.getReplies(inquiry.id);
+        const replies = result && result.inquiries ? result.inquiries : [];
+        chatMessages = [inquiry, ...replies];
+    } catch (err) {
+        chatMessages = [inquiry];
+    }
 
     const headerTitle = query('.chat-panel-listing-title');
     if (headerTitle) {
@@ -104,14 +112,18 @@ export async function sendChatMessage() {
     if (!message || !currentConversation) return;
 
     try {
-        await inquiriesApi.createInquiry(
-            currentConversation.listing_id,
-            message,
-            currentConversation.sender_contact || 'Guest'
+        const result = await inquiriesApi.replyInquiry(
+            currentConversation.id,
+            message
         );
 
+        const reply = result?.reply || result;
+        if (reply) {
+            chatMessages.push(reply);
+        }
         input.value = '';
         showToast('訊息已發送', 'success');
+        renderChatMessages();
 
         if (onMessageSent) {
             onMessageSent();
@@ -129,7 +141,6 @@ function renderChatMessages() {
 
     const listing = currentConversation.listing;
     const currentUser = getCurrentUser();
-    const isOwn = currentUser && currentConversation.sender_id === currentUser.id;
 
     // Header with listing info
     const headerEl = createElement('div', { className: 'chat-conversation-header' });
@@ -141,16 +152,19 @@ function renderChatMessages() {
     container.appendChild(headerEl);
 
     // Messages
-    const msgEl = createElement('div', { className: 'chat-message' });
-    msgEl.classList.add(isOwn ? 'chat-message-own' : 'chat-message-other');
-    msgEl.innerHTML = `
-        <div class="chat-bubble">${escapeHtml(currentConversation.message)}</div>
-        <div class="chat-meta">
-            <span class="chat-sender">${currentConversation.sender_contact || '匿名'}</span>
-            <span class="chat-time">${formatDateTimeValue(currentConversation.created_at)}</span>
-        </div>
-    `;
-    container.appendChild(msgEl);
+    chatMessages.forEach((msg) => {
+        const isOwn = currentUser && msg.sender_id === currentUser.id;
+        const msgEl = createElement('div', { className: 'chat-message' });
+        msgEl.classList.add(isOwn ? 'chat-message-own' : 'chat-message-other');
+        msgEl.innerHTML = `
+            <div class="chat-bubble">${escapeHtml(msg.message)}</div>
+            <div class="chat-meta">
+                <span class="chat-sender">${msg.sender_contact || '匿名'}</span>
+                <span class="chat-time">${formatDateTimeValue(msg.created_at)}</span>
+            </div>
+        `;
+        container.appendChild(msgEl);
+    });
 
     // Scroll to bottom
     container.scrollTop = container.scrollHeight;

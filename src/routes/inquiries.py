@@ -47,8 +47,44 @@ def create_inquiry():
             listing_id=data.get("listing_id"),
             message=data.get("message"),
             sender_id=user_id,
-            sender_contact=sender_contact
+            sender_contact=sender_contact,
+            parent_id=data.get("parent_id")
         )
         return success({"inquiry": inquiry.to_dict()}, "Inquiry sent", 201)
+    except ValueError as e:
+        return error(str(e), 400)
+
+
+@inquiries_bp.route("/<inquiry_id>/reply", methods=["POST"])
+@jwt_required()
+def reply_inquiry(inquiry_id):
+    user_id = get_jwt_identity()
+    data = request.get_json() or {}
+
+    sender_contact = data.get("sender_contact", "Guest")
+    if user_id:
+        from src.services import AuthService
+        user = AuthService.get_user_by_id(user_id)
+        if user:
+            sender_contact = user.email
+
+    try:
+        reply = InquiryService.reply(
+            parent_id=inquiry_id,
+            message=data.get("message"),
+            sender_id=user_id,
+            sender_contact=sender_contact
+        )
+        return success({"reply": reply.to_dict()}, "Reply sent", 201)
+    except ValueError as e:
+        return error(str(e), 400)
+
+
+@inquiries_bp.route("/<inquiry_id>/replies", methods=["GET"])
+@jwt_required()
+def get_replies(inquiry_id):
+    try:
+        replies = InquiryService.get_replies(inquiry_id)
+        return success({"inquiries": [r.to_dict() for r in replies]})
     except ValueError as e:
         return error(str(e), 400)

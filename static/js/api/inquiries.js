@@ -11,3 +11,11 @@ export async function createInquiry(listingId, message, senderContact) {
         sender_contact: senderContact
     });
 }
+
+export async function replyInquiry(parentId, message) {
+    return apiClient.post(`/inquiries/${parentId}/reply`, { message });
+}
+
+export async function getReplies(inquiryId) {
+    return apiClient.get(`/inquiries/${inquiryId}/replies`);
+}
