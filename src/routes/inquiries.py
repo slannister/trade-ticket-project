@@ -1,8 +1,9 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from src.extensions import limiter
 from src.services import InquiryService
 from src.utils.responses import success, error
+import json
 
 inquiries_bp = Blueprint("inquiries", __name__)
 
@@ -110,3 +111,36 @@ def mark_inquiry_as_read(inquiry_id):
         return success({"inquiry": inquiry.to_dict()}, "Marked as read")
     except ValueError as e:
         return error(str(e), 400)
+
+
+@inquiries_bp.route("/stream", methods=["GET"])
+@jwt_required()
+def stream_inquiries():
+    user_id = get_jwt_identity()
+
+    def generate():
+        import time
+        last_check = 0
+        while True:
+            # Check for new messages every 2 seconds
+            time.sleep(2)
+            try:
+                count = InquiryService.get_unread_count(user_id)
+                data = {
+                    "type": "heartbeat",
+                    "unread_count": count,
+                    "timestamp": time.time()
+                }
+                yield f"data: {json.dumps(data)}\n\n"
+            except Exception:
+                pass
+
+    return Response(
+        generate(),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no'
+        }
+    )

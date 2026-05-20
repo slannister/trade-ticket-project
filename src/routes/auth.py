@@ -1,6 +1,6 @@
 from flask import Blueprint, request
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from src.extensions import limiter
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
+from src.extensions import limiter, revoke_token
 from src.services import AuthService
 from src.utils.responses import success, error
 
@@ -88,7 +88,13 @@ def reset_password_with_token():
 @auth_bp.route("/logout", methods=["POST"])
 @jwt_required()
 def logout():
-    return success(message="Logged out successfully")
+    try:
+        jwt_data = get_jwt()
+        user_id = get_jwt_identity()
+        revoke_token(jwt_data["jti"], user_id)
+        return success(message="Logged out successfully")
+    except Exception as e:
+        return error(str(e), 400)
 
 
 @auth_bp.route("/profile", methods=["PUT"])
