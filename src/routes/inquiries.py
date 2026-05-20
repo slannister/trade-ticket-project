@@ -85,6 +85,7 @@ def reply_inquiry(inquiry_id):
 
 
 @inquiries_bp.route("/<inquiry_id>/replies", methods=["GET"])
+@limiter.exempt
 @jwt_required()
 def get_replies(inquiry_id):
     try:
@@ -95,6 +96,7 @@ def get_replies(inquiry_id):
 
 
 @inquiries_bp.route("/unread-count", methods=["GET"])
+@limiter.exempt
 @jwt_required()
 def get_unread_count():
     user_id = get_jwt_identity()
@@ -103,6 +105,7 @@ def get_unread_count():
 
 
 @inquiries_bp.route("/<inquiry_id>/read", methods=["PUT"])
+@limiter.exempt
 @jwt_required()
 def mark_inquiry_as_read(inquiry_id):
     user_id = get_jwt_identity()
@@ -114,6 +117,7 @@ def mark_inquiry_as_read(inquiry_id):
 
 
 @inquiries_bp.route("/stream", methods=["GET"])
+@limiter.exempt
 @jwt_required()
 def stream_inquiries():
     user_id = get_jwt_identity()
