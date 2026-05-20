@@ -83,14 +83,6 @@ class AuthService:
         reset_url = f"/reset-password?token={token}"
         reset_link = f"http://localhost:5000{reset_url}"
 
-        print(f"\n{'='*60}")
-        print(f"密碼重設連結 Password Reset Link:")
-        print(f"{'='*60}")
-        print(f"收件人: {email}")
-        print(f"連結: {reset_link}")
-        print(f"有效期限: 1 小時")
-        print(f"{'='*60}\n")
-
         return True
 
     @staticmethod

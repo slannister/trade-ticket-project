@@ -308,6 +308,12 @@ body[data-theme='light'] .sidebar-nav button:hover .nav-indicator {
   font-size: 0.7rem;
   font-weight: 700;
   margin-left: auto;
+  animation: badge-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
 }
 
 .sidebar-personal.has-unread {

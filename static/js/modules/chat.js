@@ -240,13 +240,15 @@ function renderChatMessages() {
         const isOwn = currentUser && msg.sender_id === currentUser.id;
         const msgEl = createElement('div', { className: 'chat-message' });
         msgEl.classList.add(isOwn ? 'chat-message-own' : 'chat-message-other');
-        msgEl.innerHTML = `
-            <div class="chat-bubble">${escapeHtml(msg.message)}</div>
-            <div class="chat-meta">
-                <span class="chat-sender">${msg.sender_contact || '匿名'}</span>
-                <span class="chat-time">${formatDateTimeValue(msg.created_at)}</span>
-            </div>
+        const bubbleEl = createElement('div', { className: 'chat-bubble' });
+        bubbleEl.textContent = msg.message || '';
+        const metaEl = createElement('div', { className: 'chat-meta' });
+        metaEl.innerHTML = `
+            <span class="chat-sender">${escapeHtml(msg.sender_contact || '匿名')}</span>
+            <span class="chat-time">${escapeHtml(formatDateTimeValue(msg.created_at))}</span>
         `;
+        msgEl.appendChild(bubbleEl);
+        msgEl.appendChild(metaEl);
         container.appendChild(msgEl);
     });
 
