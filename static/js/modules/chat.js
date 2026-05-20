@@ -9,13 +9,18 @@ let chatMessages = [];
 let onMessageSent = null;
 let refreshInterval = null;
 let eventSource = null;
+let badgeInterval = null;
 const REFRESH_INTERVAL = 5000;
+const BADGE_INTERVAL = 3000;
 
 export function init(onSentCallback) {
     onMessageSent = onSentCallback;
     createChatPanel();
     attachChatListeners();
+    updateUnreadBadge();
     startSSE();
+    // Fallback badge polling in case SSE fails
+    badgeInterval = setInterval(updateUnreadBadge, BADGE_INTERVAL);
 }
 
 function startSSE() {
@@ -47,6 +52,10 @@ function stopSSE() {
     if (eventSource) {
         eventSource.close();
         eventSource = null;
+    }
+    if (badgeInterval) {
+        clearInterval(badgeInterval);
+        badgeInterval = null;
     }
 }
 
@@ -232,6 +241,7 @@ export async function sendChatMessage() {
             onMessageSent();
         }
         await refreshMessages();
+        updateUnreadBadge(); // Refresh badge after sending
     } catch (err) {
         showToast(err.message || '發送失敗', 'error');
     }
