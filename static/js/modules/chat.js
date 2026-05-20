@@ -29,9 +29,11 @@ function startSSE() {
     if (!token) return;
 
     try {
-        eventSource = new EventSource(`/api/inquiries/stream?token=${encodeURIComponent(token)}`);
+        const url = new URL('/api/inquiries/stream', window.location.origin);
+        url.searchParams.set('token', token);
+        eventSource = new EventSource(url.toString());
         eventSource.onopen = () => {
-            // Connection established
+            // SSE connected successfully
         };
         eventSource.onmessage = (e) => {
             try {
@@ -44,15 +46,11 @@ function startSSE() {
             }
         };
         eventSource.onerror = () => {
-            // Try to reconnect after 5 seconds
-            setTimeout(() => {
-                if (!eventSource || eventSource.readyState === EventSource.CLOSED) {
-                    startSSE();
-                }
-            }, 5000);
+            // Don't retry - rely on badge polling instead
+            stopSSE();
         };
     } catch (err) {
-        // Fallback to polling handled by badgeInterval
+        // SSE not supported or failed, rely on polling
     }
 }
 
@@ -61,10 +59,7 @@ function stopSSE() {
         eventSource.close();
         eventSource = null;
     }
-    if (badgeInterval) {
-        clearInterval(badgeInterval);
-        badgeInterval = null;
-    }
+    // Don't clear badgeInterval - it's the fallback polling
 }
 
 function updateUnreadBadgeCount(count) {

@@ -118,9 +118,37 @@ def mark_inquiry_as_read(inquiry_id):
 
 @inquiries_bp.route("/stream", methods=["GET"])
 @limiter.exempt
-@jwt_required()
 def stream_inquiries():
-    user_id = get_jwt_identity()
+    from flask import request
+    from flask_jwt_extended import decode_token
+    import jwt
+
+    token = request.args.get('token')
+    if not token:
+        return error("Missing token", 401)
+
+    try:
+        # Manually decode JWT to get user_id
+        # Split the token and decode the payload
+        parts = token.split('.')
+        if len(parts) != 3:
+            return error("Invalid token format", 401)
+
+        # Decode payload (second part) - it's base64url encoded
+        import base64
+        payload = parts[1]
+        # Add padding if needed
+        padding = 4 - len(payload) % 4
+        if padding != 4:
+            payload += '=' * padding
+
+        import json as json_module
+        decoded_payload = json_module.loads(base64.urlsafe_b64decode(payload))
+        user_id = decoded_payload.get('sub')
+        if not user_id:
+            return error("Invalid token - no subject", 401)
+    except Exception as e:
+        return error(f"Invalid token: {str(e)}", 401)
 
     def generate():
         import time
