@@ -30,6 +30,9 @@ function startSSE() {
 
     try {
         eventSource = new EventSource(`/api/inquiries/stream?token=${encodeURIComponent(token)}`);
+        eventSource.onopen = () => {
+            // Connection established
+        };
         eventSource.onmessage = (e) => {
             try {
                 const data = JSON.parse(e.data);
@@ -41,10 +44,15 @@ function startSSE() {
             }
         };
         eventSource.onerror = () => {
-            stopSSE();
+            // Try to reconnect after 5 seconds
+            setTimeout(() => {
+                if (!eventSource || eventSource.readyState === EventSource.CLOSED) {
+                    startSSE();
+                }
+            }, 5000);
         };
     } catch (err) {
-        // Fallback to polling handled by startBadgePoll
+        // Fallback to polling handled by badgeInterval
     }
 }
 
