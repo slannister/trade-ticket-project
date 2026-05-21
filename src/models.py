@@ -144,3 +144,26 @@ class PasswordReset(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     user = db.relationship("User", backref="password_resets")
+
+
+class TokenBlacklist(db.Model):
+    __tablename__ = "token_blacklist"
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    jti = db.Column(db.String(36), unique=True, nullable=False, index=True)
+    token_type = db.Column(db.String(20), default="access")
+    user_id = db.Column(db.String(36), db.ForeignKey("users.id"), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    expires_at = db.Column(db.DateTime, nullable=False)
+
+    user = db.relationship("User", backref="blacklisted_tokens")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "jti": self.jti,
+            "token_type": self.token_type,
+            "user_id": self.user_id,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "expires_at": self.expires_at.isoformat() if self.expires_at else None
+        }

@@ -8,26 +8,72 @@ let currentConversation = null;
 let chatMessages = [];
 let onMessageSent = null;
 let refreshInterval = null;
+let eventSource = null;
 let badgeInterval = null;
-const REFRESH_INTERVAL = 5000; // Refresh every 5 seconds
-const BADGE_INTERVAL = 3000; // Check unread every 3 seconds
+const REFRESH_INTERVAL = 5000;
+const BADGE_INTERVAL = 3000;
 
 export function init(onSentCallback) {
     onMessageSent = onSentCallback;
     createChatPanel();
     attachChatListeners();
-    startBadgePoll();
-}
-
-function startBadgePoll() {
     updateUnreadBadge();
+    startSSE();
+    // Fallback badge polling in case SSE fails
     badgeInterval = setInterval(updateUnreadBadge, BADGE_INTERVAL);
 }
 
-function stopBadgePoll() {
-    if (badgeInterval) {
-        clearInterval(badgeInterval);
-        badgeInterval = null;
+function startSSE() {
+    stopSSE();
+    const token = localStorage.getItem('auth_token');
+    if (!token) return;
+
+    try {
+        const url = new URL('/api/inquiries/stream', window.location.origin);
+        url.searchParams.set('token', token);
+        eventSource = new EventSource(url.toString());
+        eventSource.onopen = () => {
+            // SSE connected successfully
+        };
+        eventSource.onmessage = (e) => {
+            try {
+                const data = JSON.parse(e.data);
+                if (data.type === 'heartbeat') {
+                    updateUnreadBadgeCount(data.unread_count);
+                }
+            } catch (err) {
+                // Ignore parse errors
+            }
+        };
+        eventSource.onerror = () => {
+            // Don't retry - rely on badge polling instead
+            stopSSE();
+        };
+    } catch (err) {
+        // SSE not supported or failed, rely on polling
+    }
+}
+
+function stopSSE() {
+    if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+    }
+    // Don't clear badgeInterval - it's the fallback polling
+}
+
+function updateUnreadBadgeCount(count) {
+    const badge = query('#messages-badge');
+    const msgBtn = query('.sidebar-personal[data-category="messages"]');
+    if (!badge) return;
+
+    if (count > 0) {
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.hidden = false;
+        msgBtn?.classList.add('has-unread');
+    } else {
+        badge.hidden = true;
+        msgBtn?.classList.remove('has-unread');
     }
 }
 
@@ -38,15 +84,7 @@ async function updateUnreadBadge() {
 
     try {
         const data = await inquiriesApi.getUnreadCount();
-        const count = data?.count || 0;
-        if (count > 0) {
-            badge.textContent = count > 99 ? '99+' : count;
-            badge.hidden = false;
-            msgBtn?.classList.add('has-unread');
-        } else {
-            badge.hidden = true;
-            msgBtn?.classList.remove('has-unread');
-        }
+        updateUnreadBadgeCount(data?.count || 0);
     } catch (err) {
         // Silently fail
     }
@@ -98,19 +136,16 @@ export async function openChat(inquiry) {
 
     const currentUser = getCurrentUser();
     const isOwner = currentUser && inquiry.listing.owner_id === currentUser.id;
-    const isSender = currentUser && inquiry.sender_id === currentUser.id;
 
-    // Can't reply to yourself
-    if (isOwner && isSender) {
+    // Owner cannot reply to inquiries on their own listing
+    if (isOwner) {
         showToast('無法回覆自己的詢問', 'error');
         return;
     }
 
     currentConversation = inquiry;
     currentConversation._isOwner = isOwner;
-    currentConversation._isSender = isSender;
 
-    // Always reload replies to get latest messages
     try {
         const result = await inquiriesApi.getReplies(inquiry.id);
         const replies = result && result.inquiries ? result.inquiries : [];
@@ -125,9 +160,8 @@ export async function openChat(inquiry) {
     }
 
     renderChatMessages();
-    updateUnreadBadge(); // Refresh badge after opening chat
+    updateUnreadBadge();
 
-    // Mark as read when opening chat (whether owner viewing inquiry or sender viewing replies)
     if (currentConversation) {
         inquiriesApi.markAsRead(currentConversation.id).catch(() => {});
     }
@@ -135,7 +169,6 @@ export async function openChat(inquiry) {
     chatPanel.hidden = false;
     chatPanel.classList.add('is-open');
 
-    // Scroll to bottom after panel is visible
     requestAnimationFrame(() => {
         const container = query('#chat-messages-container');
         if (container) container.scrollTop = container.scrollHeight;
@@ -156,7 +189,6 @@ export function closeChat() {
     }
     currentConversation = null;
     stopAutoRefresh();
-    // Refresh badge count after closing chat
     updateUnreadBadge();
 }
 
@@ -210,8 +242,8 @@ export async function sendChatMessage() {
         if (onMessageSent) {
             onMessageSent();
         }
-        // Refresh to get latest messages
         await refreshMessages();
+        updateUnreadBadge(); // Refresh badge after sending
     } catch (err) {
         showToast(err.message || '發送失敗', 'error');
     }
@@ -226,7 +258,6 @@ function renderChatMessages() {
     const listing = currentConversation.listing;
     const currentUser = getCurrentUser();
 
-    // Header with listing info
     const headerEl = createElement('div', { className: 'chat-conversation-header' });
     headerEl.innerHTML = `
         <a href="/detail?id=${listing?.id}" class="chat-listing-link" target="_blank">
@@ -235,22 +266,22 @@ function renderChatMessages() {
     `;
     container.appendChild(headerEl);
 
-    // Messages
     chatMessages.forEach((msg) => {
         const isOwn = currentUser && msg.sender_id === currentUser.id;
         const msgEl = createElement('div', { className: 'chat-message' });
         msgEl.classList.add(isOwn ? 'chat-message-own' : 'chat-message-other');
-        msgEl.innerHTML = `
-            <div class="chat-bubble">${escapeHtml(msg.message)}</div>
-            <div class="chat-meta">
-                <span class="chat-sender">${msg.sender_contact || '匿名'}</span>
-                <span class="chat-time">${formatDateTimeValue(msg.created_at)}</span>
-            </div>
+        const bubbleEl = createElement('div', { className: 'chat-bubble' });
+        bubbleEl.textContent = msg.message || '';
+        const metaEl = createElement('div', { className: 'chat-meta' });
+        metaEl.innerHTML = `
+            <span class="chat-sender">${escapeHtml(msg.sender_contact || '匿名')}</span>
+            <span class="chat-time">${escapeHtml(formatDateTimeValue(msg.created_at))}</span>
         `;
+        msgEl.appendChild(bubbleEl);
+        msgEl.appendChild(metaEl);
         container.appendChild(msgEl);
     });
 
-    // Scroll to bottom
     container.scrollTop = container.scrollHeight;
 }
 

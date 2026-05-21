@@ -1,57 +1,17 @@
-import { formatDateValue, formatDateTimeValue } from './utils/date.js';
-import { showToast, query, queryAll, createElement, removeChildren, show, hide } from './utils/dom.js';
+import { query, queryAll, show, hide } from './utils/dom.js';
+import { showToast } from './utils/toast.js';
 import { getFilters, setFilter, resetFilters, buildQueryParams } from './modules/filters.js';
 import { getPagination, setPagination, nextPage, prevPage, resetPage } from './modules/pagination.js';
-import { loadListings, loadMyListings, createListing, updateListing, deleteListing, updateListingStatus, uploadImage } from './modules/listings.js';
+import { loadListings, loadMyListings, createListing, updateListing, deleteListing, updateListingStatus } from './modules/listings.js';
 import { init as initAuth, handleLogin, handleRegister, handleLogout, getCurrentUser, requireAuth } from './modules/auth.js';
-import { init as initFavorites, isFavorite, toggle as toggleFavoriteLocal, syncFromServer, addFavorite, removeFavorite } from './modules/favorites.js';
+import { init as initFavorites, isFavorite, toggle as toggleFavoriteLocal, syncFromServer } from './modules/favorites.js';
 import { init as initChat } from './modules/chat.js';
 import { initI18n, getLocale, setLocale, t, updateStaticContent } from './i18n/index.js';
-const CATEGORY_BACKGROUNDS = {
-    '演唱會': 'linear-gradient(140deg, rgba(224, 114, 255, 0.4), rgba(118, 86, 255, 0.35))',
-    'Concert': 'linear-gradient(140deg, rgba(224, 114, 255, 0.4), rgba(118, 86, 255, 0.35))',
-    '體育賽事': 'linear-gradient(140deg, rgba(91, 200, 255, 0.35), rgba(76, 181, 163, 0.4))',
-    'Sports': 'linear-gradient(140deg, rgba(91, 200, 255, 0.35), rgba(76, 181, 163, 0.4))',
-    '戲劇舞台': 'linear-gradient(140deg, rgba(255, 168, 91, 0.4), rgba(170, 99, 255, 0.35))',
-    'Theater': 'linear-gradient(140deg, rgba(255, 168, 91, 0.4), rgba(170, 99, 255, 0.35))',
-    '綜藝活動': 'linear-gradient(140deg, rgba(255, 129, 179, 0.38), rgba(255, 182, 108, 0.38))',
-    'Show / Event': 'linear-gradient(140deg, rgba(255, 129, 179, 0.38), rgba(255, 182, 108, 0.38))',
-    '展覽 / 市集': 'linear-gradient(140deg, rgba(99, 205, 255, 0.35), rgba(112, 255, 188, 0.35))',
-    'Exhibition / Market': 'linear-gradient(140deg, rgba(99, 205, 255, 0.35), rgba(112, 255, 188, 0.35))',
-    '收藏品 / 周邊': 'linear-gradient(140deg, rgba(164, 129, 255, 0.38), rgba(108, 218, 255, 0.32))',
-    'Collectibles / Merchandise': 'linear-gradient(140deg, rgba(164, 129, 255, 0.38), rgba(108, 218, 255, 0.32))',
-    '其他': 'linear-gradient(140deg, rgba(140, 150, 170, 0.35), rgba(90, 99, 120, 0.35))',
-    'Other': 'linear-gradient(140deg, rgba(140, 150, 170, 0.35), rgba(90, 99, 120, 0.35))'
-};
-
-const LISTING_TYPES = { auction: '出售', transfer: '讓票', swap: '交換', request: '求票' };
-const LISTING_TYPES_EN = { auction: 'For Sale', transfer: 'Transfer', swap: 'Swap', request: 'Request' };
-const DELIVERY_METHODS = { meetup: '面交', shipping: '寄件' };
-const DELIVERY_METHODS_EN = { meetup: 'Meetup', shipping: 'Shipping' };
-
-function getListingTypeLabel(type) {
-    const locale = getLocale();
-    if (locale.startsWith('zh')) {
-        return LISTING_TYPES[type] || type || '';
-    }
-    return LISTING_TYPES_EN[type] || type || '';
-}
-
-function getDeliveryMethodLabel(method) {
-    const locale = getLocale();
-    if (locale.startsWith('zh')) {
-        return DELIVERY_METHODS[method] || method || '';
-    }
-    return DELIVERY_METHODS_EN[method] || method || '';
-}
-
-function getCategoryBackground(category) {
-    return CATEGORY_BACKGROUNDS[category] || 'linear-gradient(140deg, rgba(91, 140, 255, 0.24), rgba(127, 91, 255, 0.18))';
-}
+import { renderListingGrid, createListingCard } from './modules/listingGrid.js';
+import { bindFormEvents, collectFormData, fillForm, resetForm, showFormPanel, getEditingId, setEditingId } from './modules/formHandler.js';
 
 let listings = [];
 let activeCategory = sessionStorage.getItem('activeCategory') || 'all';
-let editingListingId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     initI18n();
@@ -65,6 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initMemberModal();
     initImageModal();
     bindEvents();
+    bindFormEvents(handleFormSubmit, handleCancelEdit);
     await loadInitialData();
     restoreViewState();
 });
@@ -120,7 +81,6 @@ function initSidebarToggle() {
         localStorage.setItem('sidebarCollapsed', isCollapsed);
     });
 
-    // Restore state
     const saved = localStorage.getItem('sidebarCollapsed');
     if (saved === 'true') {
         sidebar.classList.add('is-collapsed');
@@ -132,13 +92,11 @@ function initMemberModal() {
     const modal = query('#member-modal');
     if (!modal) return;
 
-    // Open modal
     const triggers = queryAll('[data-member-trigger]');
     triggers.forEach(btn => {
         btn.addEventListener('click', () => {
             const user = getCurrentUser();
             if (user) {
-                // If already logged in, show account menu
                 const accountMenu = query('[data-account-menu]');
                 if (accountMenu) {
                     const isHidden = accountMenu.hidden || !accountMenu.classList.contains('is-open');
@@ -151,12 +109,10 @@ function initMemberModal() {
         });
     });
 
-    // Close modal
     queryAll('[data-member-dismiss]').forEach(el => {
         el.addEventListener('click', () => closeMemberModal());
     });
 
-    // Tab switching
     queryAll('[data-member-tab]', modal).forEach(tab => {
         tab.addEventListener('click', () => {
             const view = tab.dataset.memberTab;
@@ -164,14 +120,12 @@ function initMemberModal() {
         });
     });
 
-    // Route links (我要註冊, 返回登入, 忘記密碼)
     queryAll('[data-member-route]', modal).forEach(link => {
         link.addEventListener('click', () => {
             switchMemberView(link.dataset.memberRoute);
         });
     });
 
-    // Login form
     const loginForm = query('#member-login-form');
     if (loginForm) {
         loginForm.addEventListener('submit', async (e) => {
@@ -188,7 +142,6 @@ function initMemberModal() {
         });
     }
 
-    // Signup form
     const signupForm = query('#member-signup-form');
     if (signupForm) {
         signupForm.addEventListener('submit', async (e) => {
@@ -210,7 +163,6 @@ function initMemberModal() {
         });
     }
 
-    // Reset password form
     const resetForm = query('#member-reset-form');
     if (resetForm) {
         resetForm.addEventListener('submit', async (e) => {
@@ -229,7 +181,6 @@ function initMemberModal() {
         });
     }
 
-    // Logout
     queryAll('[data-account-logout], [data-member-logout]').forEach(btn => {
         btn.addEventListener('click', async () => {
             try {
@@ -244,7 +195,6 @@ function initMemberModal() {
         });
     });
 
-    // Password toggle
     queryAll('[data-password-toggle]', modal).forEach(btn => {
         btn.addEventListener('click', () => {
             const wrapper = btn.closest('[data-password-field]');
@@ -257,7 +207,6 @@ function initMemberModal() {
         });
     });
 
-    // Close on Escape
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && modal.getAttribute('aria-hidden') === 'false') {
             closeMemberModal();
@@ -285,7 +234,6 @@ function restoreViewState() {
             if (btn) panelTitle.textContent = btn.querySelector('span:last-child')?.textContent || t('category.all');
         }
 
-        // Handle special views
         const categoryPanel = query('#category-panel');
         const formPanel = query('#listing-form-panel');
         const messagesPanel = query('#messages-panel');
@@ -449,7 +397,6 @@ function updateMemberUI(user) {
         memberButton.textContent = user ? `${t('auth.loginSuccess')}，${user.display_name || user.email}` : t('auth.loginRegister');
         memberButton.dataset.memberState = user ? 'signed-in' : 'signed-out';
     }
-    // Show/hide logout button in modal
     const logoutBtn = query('[data-member-logout]');
     if (logoutBtn) logoutBtn.hidden = !user;
 }
@@ -474,7 +421,6 @@ async function loadListingsView(params = {}) {
         }
 
         const data = await loadListings(queryParams);
-        // client.js auto-unwraps Flask's { success, data } wrapper
         listings = data.listings || [];
         const paginationData = data.pagination || {};
         const totalItems = paginationData.total || 0;
@@ -514,216 +460,95 @@ function updatePaginationUI() {
 
 /* ── Rendering ── */
 function renderListings() {
-    const container = query('#listings-container');
-    if (!container) return;
+    renderListingGrid(listings, {
+        getCurrentUser,
+        isFavorite,
+        onEdit: handleEditListing,
+        onDelete: handleDeleteListing,
+        onSold: handleSoldListing,
+        onFavorite: handleFavoriteListing,
+        onImageClick: openImageModal
+    });
+}
 
-    removeChildren(container);
+/* ── Listing Actions ── */
+function handleEditListing(listing) {
+    setEditingId(listing.id);
+    fillForm(listing);
+    showFormPanel();
+}
 
-    if (listings.length === 0) {
-        container.appendChild(createElement('div', { className: 'empty-state', textContent: t('empty.noListings') }));
+async function handleDeleteListing(listing) {
+    if (confirm(t('listingForm.deleteConfirm'))) {
+        try {
+            await deleteListing(listing.id);
+            showToast(t('listingForm.deleted'), 'success');
+            await loadListingsView();
+        } catch (err) {
+            showToast(t('errors.deleteFailed'), 'error');
+        }
+    }
+}
+
+async function handleSoldListing(listing) {
+    const newStatus = listing.status === 'sold' ? 'active' : 'sold';
+    const confirmMsg = newStatus === 'sold' ? t('listingForm.markAsSoldConfirm') : t('listingForm.reopenConfirm');
+    if (confirm(confirmMsg)) {
+        try {
+            await updateListingStatus(listing.id, newStatus);
+            showToast(t('listingForm.statusUpdated'), 'success');
+            await loadListingsView();
+        } catch (err) {
+            showToast(t('errors.updateFailed'), 'error');
+        }
+    }
+}
+
+async function handleFavoriteListing(listing, btn) {
+    if (!requireAuth(t('authPrompts.toFavorite'))) {
+        openMemberModal();
+        return;
+    }
+    try {
+        const added = await toggleFavoriteLocal(listing.id);
+        if (btn) {
+            btn.classList.toggle('is-active', added);
+            btn.setAttribute('aria-pressed', added);
+        }
+        showToast(added ? t('favorites.added') : t('favorites.removed'), 'success');
+    } catch (err) {
+        showToast(t('favorites.addFailed'), 'error');
+    }
+}
+
+function handleCancelEdit() {
+    resetForm();
+}
+
+/* ── Form Submit ── */
+async function handleFormSubmit(data, editingId) {
+    if (!requireAuth(t('authPrompts.toPublish'))) {
+        openMemberModal();
         return;
     }
 
-    listings.forEach(listing => {
-        container.appendChild(createListingCard(listing));
-    });
-}
-
-function createListingCard(listing) {
-    const card = createElement('article', { className: 'listing-card' });
-
-    const images = listing.images || [];
-    const background = getCategoryBackground(listing.category);
-    const user = getCurrentUser();
-    const isOwner = user && listing.owner_id === user.id;
-    const isFav = !isOwner && isFavorite(listing.id);
-
-    const imagesDataAttr = images.length > 1 ? ` data-gallery-trigger data-images='${btoa(JSON.stringify(images))}'` : '';
-
-    const listingTypeLabel = getListingTypeLabel(listing.type);
-    const deliveryLabel = getDeliveryMethodLabel(listing.delivery_method);
-
-    card.innerHTML = `
-        <div class="listing-card-media" style="background: ${background}">
-            ${images.length > 0
-            ? `<img src="${images[0].url || images[0]}" alt="${listing.title}" loading="lazy"${imagesDataAttr} />`
-            : `<span class="listing-card-fallback">${(listing.category || listing.title || t('category.other')).charAt(0).toUpperCase()}</span>`}
-            ${listing.status === 'sold' ? `<div class="listing-card-sold-badge">${t('listingCard.sold')}</div>` : ''}
-        </div>
-        <div class="listing-card-body">
-            <div class="listing-card-title-row">
-                <h3 class="listing-card-title">${listing.title || t('listingForm.titlePlaceholder')}</h3>
-                ${isOwner ? `
-                <div class="listing-card-owner-menu">
-                    <button class="owner-menu-trigger" type="button" aria-label="${t('edit')}">⋯</button>
-                    <div class="owner-menu" role="menu">
-                        <button class="owner-menu-item listing-card-edit" type="button" role="menuitem">${t('edit')}</button>
-                        <button class="owner-menu-item listing-card-sold" type="button" role="menuitem">${t('listingForm.markAsSold')}</button>
-                        <button class="owner-menu-item listing-card-delete" type="button" role="menuitem">${t('delete')}</button>
-                    </div>
-                </div>` : `
-                <button class="listing-card-favorite${isFav ? ' is-active' : ''}" type="button" aria-pressed="${isFav}" aria-label="${isFav ? t('favorites.removed') : t('favorites.added')}"></button>`}
-            </div>
-            <p class="listing-card-meta">
-                ${listingTypeLabel ? `<span>${listingTypeLabel}</span>` : ''}
-                ${listing.category ? `<span>${listing.category}</span>` : ''}
-                ${listing.quantity ? `<span>${t('listingForm.quantity')} ${listing.quantity}</span>` : ''}
-                ${deliveryLabel ? `<span>${deliveryLabel}</span>` : ''}
-                ${listing.location ? `<span>${listing.location}</span>` : ''}
-            </p>
-            <p class="listing-card-description">${listing.description || t('listingCard.noDescription')}</p>
-            ${listing.created_at ? `<p class="listing-card-published">${t('listingCard.published')}${formatDateTimeValue(listing.created_at)}</p>` : ''}
-        </div>
-        <div class="listing-card-footer">
-            <div class="listing-card-price">
-                <span class="price-label">${t('listingCard.priceLabel')}</span>
-                <strong class="price-value">${listing.buy_now ? `NT$ ${Number(listing.buy_now).toLocaleString()}` : listing.face_value ? `${t('detail.faceValue')} NT$ ${Number(listing.face_value).toLocaleString()}` : t('listingCard.priceNegotiable')}</strong>
-            </div>
-        </div>
-    `;
-
-    // Click card to navigate
-    card.addEventListener('click', (e) => {
-        if (!e.target.matches('button') && !e.target.closest('button')) {
-            window.location.href = `/detail?id=${listing.id}`;
+    try {
+        if (editingId) {
+            await updateListing(editingId, data);
+            showToast(t('listingForm.updated'), 'success');
+        } else {
+            await createListing(data);
+            showToast(t('listingForm.created'), 'success');
         }
-    });
-
-    // Favorite button handler
-    const favBtn = card.querySelector('.listing-card-favorite');
-    if (favBtn) {
-        favBtn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            if (!requireAuth(t('authPrompts.toFavorite'))) {
-                openMemberModal();
-                return;
-            }
-            try {
-                const added = await toggleFavoriteLocal(listing.id);
-                favBtn.classList.toggle('is-active', added);
-                favBtn.setAttribute('aria-pressed', added);
-                showToast(added ? t('favorites.added') : t('favorites.removed'), 'success');
-            } catch (err) {
-                showToast(t('favorites.addFailed'), 'error');
-            }
-        });
-    }
-
-    // Gallery trigger for multi-image cards
-    const galleryTrigger = card.querySelector('[data-gallery-trigger]');
-    if (galleryTrigger && images.length > 1) {
-        galleryTrigger.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const storedImages = galleryTrigger.dataset.images;
-            if (storedImages) {
-                try {
-                    const imgs = JSON.parse(atob(storedImages));
-                    openImageModal(imgs, 0);
-                } catch (err) {
-                    window.location.href = `/detail?id=${listing.id}`;
-                }
-            }
-        });
-    }
-
-    // Owner actions
-    if (isOwner) {
-        const editBtn = card.querySelector('.listing-card-edit');
-        const deleteBtn = card.querySelector('.listing-card-delete');
-        const menuTrigger = card.querySelector('.owner-menu-trigger');
-        const menu = card.querySelector('.owner-menu');
-
-        menuTrigger?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            menu.classList.toggle('is-open');
-        });
-
-        editBtn?.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            editingListingId = listing.id;
-            fillEditForm(listing);
-        });
-
-        deleteBtn?.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            if (confirm(t('listingForm.deleteConfirm'))) {
-                try {
-                    await deleteListing(listing.id);
-                    showToast(t('listingForm.deleted'), 'success');
-                    await loadListingsView();
-                } catch (err) {
-                    showToast(t('errors.deleteFailed'), 'error');
-                }
-            }
-        });
-
-        const soldBtn = card.querySelector('.listing-card-sold');
-        soldBtn?.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const newStatus = listing.status === 'sold' ? 'active' : 'sold';
-            const confirmMsg = newStatus === 'sold' ? t('listingForm.markAsSoldConfirm') : t('listingForm.reopenConfirm');
-            if (confirm(confirmMsg)) {
-                try {
-                    await updateListingStatus(listing.id, newStatus);
-                    showToast(t('listingForm.statusUpdated'), 'success');
-                    await loadListingsView();
-                } catch (err) {
-                    showToast(t('errors.updateFailed'), 'error');
-                }
-            }
-        });
-    }
-
-    return card;
-}
-
-function fillEditForm(listing) {
-    const formPanel = query('#listing-form-panel');
-    if (formPanel) {
-        show(formPanel);
-        formPanel.scrollIntoView({ behavior: 'smooth' });
-    }
-
-    const form = query('#listing-form');
-    if (!form) return;
-
-    const fields = {
-        'title': listing.title,
-        'type': listing.type,
-        'category': listing.category,
-        'quantity': listing.quantity,
-        'buy_now': listing.buy_now,
-        'delivery_method': listing.delivery_method,
-        'urgency': listing.urgency,
-        'location': listing.location,
-        'swap_preferences': listing.swap_preferences,
-        'description': listing.description
-    };
-
-    for (const [name, value] of Object.entries(fields)) {
-        const input = form.querySelector(`[name="${name}"]`);
-        if (input && value != null) input.value = value;
-    }
-
-    const cancelBtn = query('#listing-cancel-edit');
-    if (cancelBtn) {
-        cancelBtn.hidden = false;
-        cancelBtn.onclick = () => {
-            editingListingId = null;
-            form.reset();
-            cancelBtn.hidden = true;
-            hide(formPanel);
-        };
+        resetForm();
+        await loadListingsView();
+    } catch (error) {
+        showToast(error.message || t('errors.saveFailed'), 'error');
     }
 }
 
 /* ── Event Binding ── */
 function bindEvents() {
-    const listingForm = query('#listing-form');
-    if (listingForm) {
-        listingForm.addEventListener('submit', handleFormSubmit);
-    }
-
     // Filters
     const filterType = query('#filter-type');
     if (filterType) {
@@ -761,7 +586,6 @@ function bindEvents() {
         filterClear.addEventListener('click', () => {
             resetFilters();
             resetPage();
-            // Reset UI
             const filterInputs = queryAll('.filters select, .filters input');
             filterInputs.forEach(el => {
                 if (el.tagName === 'SELECT') el.selectedIndex = 0;
@@ -822,7 +646,6 @@ function bindEvents() {
             activeCategory = btn.dataset.category;
             sessionStorage.setItem('activeCategory', activeCategory);
 
-            // Update active state
             sidebarButtons.forEach(b => {
                 b.classList.remove('is-active');
                 b.setAttribute('aria-pressed', 'false');
@@ -830,11 +653,9 @@ function bindEvents() {
             btn.classList.add('is-active');
             btn.setAttribute('aria-pressed', 'true');
 
-            // Update panel title
             const panelTitle = query('#category-panel-title');
             if (panelTitle) panelTitle.textContent = btn.querySelector('span:last-child')?.textContent || t('category.all');
 
-            // Handle special views
             const categoryPanel = query('#category-panel');
             const formPanel = query('#listing-form-panel');
             const messagesPanel = query('#messages-panel');
@@ -878,11 +699,7 @@ function bindEvents() {
                 openMemberModal();
                 return;
             }
-            const formPanel = query('#listing-form-panel');
-            if (formPanel) {
-                show(formPanel);
-                formPanel.scrollIntoView({ behavior: 'smooth' });
-            }
+            showFormPanel();
         });
     }
 
@@ -926,7 +743,6 @@ async function loadFavoritesView() {
     }
     try {
         await syncFromServer();
-        // Re-fetch listings and filter by favorites
         const data = await loadListings({ per_page: 100 });
         const allListings = data.listings || [];
         listings = allListings.filter(l => isFavorite(l.id));
@@ -961,7 +777,8 @@ async function loadMessagesView() {
             const displayMessage = msg.latestMessage || msg.message;
             const displayTime = msg.latestTime || msg.created_at;
             const replyTag = msg.unreadReplyCount > 0 ? `<span class="message-reply-tag">+${msg.unreadReplyCount}則未讀</span>` : '';
-            if (!msg.read) card.classList.add('is-unread');
+            // Mark as unread if the message itself is unread OR if it has unread replies
+            if (!msg.read || msg.unreadReplyCount > 0) card.classList.add('is-unread');
             card.innerHTML = `
                 <div class="message-header">
                     <span class="message-sender">${msg.sender_contact || 'Anonymous'}</span>
@@ -973,7 +790,6 @@ async function loadMessagesView() {
                 <button class="message-reply-btn" type="button">${t('messages.reply')}</button>
             `;
             card.addEventListener('click', (e) => {
-                // Don't open chat if clicking on links or reply button
                 if (e.target.closest('a') || e.target.matches('.message-reply-btn') || e.target.closest('.message-reply-btn')) {
                     return;
                 }
@@ -981,79 +797,30 @@ async function loadMessagesView() {
                     openChat(msg);
                 });
             });
-        container.appendChild(card);
-    });
+            container.appendChild(card);
+        });
     } catch (error) {
         showToast(t('errors.loadFailed'), 'error');
     }
 }
 
-/* ── Form Submit ── */
-async function handleFormSubmit(e) {
-    e.preventDefault();
-
-    if (!requireAuth(t('authPrompts.toPublish'))) {
-        openMemberModal();
-        return;
+function removeChildren(el) {
+    while (el.firstChild) {
+        el.removeChild(el.firstChild);
     }
+}
 
-    const formData = new FormData(e.target);
-    const data = Object.fromEntries(formData.entries());
+function createElement(tag, props) {
+    const el = document.createElement(tag);
+    if (props.className) el.className = props.className;
+    if (props.textContent) el.textContent = props.textContent;
+    if (props.hidden !== undefined) el.hidden = props.hidden;
+    return el;
+}
 
-    // Combine date + time → expires_at
-    if (data.expires_date) {
-        const time = data.expires_time || '23:59';
-        data.expires_at = `${data.expires_date}T${time}:00`;
-    }
-    delete data.expires_date;
-    delete data.expires_time;
-
-    // Clean up empty fields
-    Object.keys(data).forEach(key => {
-        if (data[key] === '' || data[key] === undefined) delete data[key];
-    });
-
-    // Parse numbers
-    if (data.quantity) data.quantity = parseInt(data.quantity, 10);
-    if (data.buy_now) data.buy_now = parseFloat(data.buy_now);
-
-    // Handle image uploads
-    const imageInput = e.target.querySelector('input[name="listing-images"]');
-    if (imageInput && imageInput.files && imageInput.files.length > 0) {
-        const maxImages = 6;
-        const files = Array.from(imageInput.files).slice(0, maxImages);
-        const uploadedImages = [];
-
-        for (const file of files) {
-            try {
-                const result = await uploadImage(file);
-                uploadedImages.push({ url: result.url, filename: result.filename });
-            } catch (err) {
-                console.error('Image upload failed:', err);
-            }
-        }
-
-        if (uploadedImages.length > 0) {
-            data.images = uploadedImages;
-        }
-    }
-
-    try {
-        if (editingListingId) {
-            await updateListing(editingListingId, data);
-            showToast(t('listingForm.updated'), 'success');
-        } else {
-            await createListing(data);
-            showToast(t('listingForm.created'), 'success');
-        }
-        e.target.reset();
-        editingListingId = null;
-        const cancelBtn = query('#listing-cancel-edit');
-        if (cancelBtn) cancelBtn.hidden = true;
-        const formPanel = query('#listing-form-panel');
-        if (formPanel) hide(formPanel);
-        await loadListingsView();
-    } catch (error) {
-        showToast(error.message || t('errors.saveFailed'), 'error');
-    }
+function formatDateTimeValue(dateStr) {
+    // Import from date.js if needed, simplified inline version
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    return d.toLocaleString();
 }

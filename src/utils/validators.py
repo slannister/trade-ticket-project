@@ -18,6 +18,7 @@ def sanitize_input(text, max_length=1000):
 
 
 def validate_email_format(email):
+    pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
     if re.match(pattern, email):
         return True, None
     return False, "Invalid email format"

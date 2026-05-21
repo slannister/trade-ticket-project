@@ -1,8 +1,9 @@
-from flask import Blueprint, request
+from flask import Blueprint, request, Response
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from src.extensions import limiter
 from src.services import InquiryService
 from src.utils.responses import success, error
+import json
 
 inquiries_bp = Blueprint("inquiries", __name__)
 
@@ -84,6 +85,7 @@ def reply_inquiry(inquiry_id):
 
 
 @inquiries_bp.route("/<inquiry_id>/replies", methods=["GET"])
+@limiter.exempt
 @jwt_required()
 def get_replies(inquiry_id):
     try:
@@ -94,6 +96,7 @@ def get_replies(inquiry_id):
 
 
 @inquiries_bp.route("/unread-count", methods=["GET"])
+@limiter.exempt
 @jwt_required()
 def get_unread_count():
     user_id = get_jwt_identity()
@@ -102,6 +105,7 @@ def get_unread_count():
 
 
 @inquiries_bp.route("/<inquiry_id>/read", methods=["PUT"])
+@limiter.exempt
 @jwt_required()
 def mark_inquiry_as_read(inquiry_id):
     user_id = get_jwt_identity()
@@ -110,3 +114,65 @@ def mark_inquiry_as_read(inquiry_id):
         return success({"inquiry": inquiry.to_dict()}, "Marked as read")
     except ValueError as e:
         return error(str(e), 400)
+
+
+@inquiries_bp.route("/stream", methods=["GET"])
+@limiter.exempt
+def stream_inquiries():
+    from flask import request
+    from flask_jwt_extended import decode_token
+    import jwt
+
+    token = request.args.get('token')
+    if not token:
+        return error("Missing token", 401)
+
+    try:
+        # Manually decode JWT to get user_id
+        # Split the token and decode the payload
+        parts = token.split('.')
+        if len(parts) != 3:
+            return error("Invalid token format", 401)
+
+        # Decode payload (second part) - it's base64url encoded
+        import base64
+        payload = parts[1]
+        # Add padding if needed
+        padding = 4 - len(payload) % 4
+        if padding != 4:
+            payload += '=' * padding
+
+        import json as json_module
+        decoded_payload = json_module.loads(base64.urlsafe_b64decode(payload))
+        user_id = decoded_payload.get('sub')
+        if not user_id:
+            return error("Invalid token - no subject", 401)
+    except Exception as e:
+        return error(f"Invalid token: {str(e)}", 401)
+
+    def generate():
+        import time
+        last_check = 0
+        while True:
+            # Check for new messages every 2 seconds
+            time.sleep(2)
+            try:
+                count = InquiryService.get_unread_count(user_id)
+                data = {
+                    "type": "heartbeat",
+                    "unread_count": count,
+                    "timestamp": time.time()
+                }
+                yield f"data: {json.dumps(data)}\n\n"
+            except Exception:
+                pass
+
+    return Response(
+        generate(),
+        mimetype='text/event-stream',
+        headers={
+            'Cache-Control': 'no-cache',
+            'Connection': 'keep-alive',
+            'X-Accel-Buffering': 'no'
+        }
+    )
