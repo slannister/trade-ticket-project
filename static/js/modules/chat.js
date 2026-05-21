@@ -136,16 +136,15 @@ export async function openChat(inquiry) {
 
     const currentUser = getCurrentUser();
     const isOwner = currentUser && inquiry.listing.owner_id === currentUser.id;
-    const isSender = currentUser && inquiry.sender_id === currentUser.id;
 
-    if (isOwner && isSender) {
+    // Owner cannot reply to inquiries on their own listing
+    if (isOwner) {
         showToast('無法回覆自己的詢問', 'error');
         return;
     }
 
     currentConversation = inquiry;
     currentConversation._isOwner = isOwner;
-    currentConversation._isSender = isSender;
 
     try {
         const result = await inquiriesApi.getReplies(inquiry.id);

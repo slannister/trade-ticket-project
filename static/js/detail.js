@@ -293,6 +293,11 @@ function bindInquiryForm() {
         }
 
         const user = getCurrentUser();
+        // Owner cannot send inquiry to their own listing
+        if (currentListing && user && currentListing.owner_id === user.id) {
+            showToast('無法對自己的刊登發送詢問', 'error');
+            return;
+        }
         const senderContact = user?.email || 'Guest';
 
         try {
