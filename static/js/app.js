@@ -777,7 +777,8 @@ async function loadMessagesView() {
             const displayMessage = msg.latestMessage || msg.message;
             const displayTime = msg.latestTime || msg.created_at;
             const replyTag = msg.unreadReplyCount > 0 ? `<span class="message-reply-tag">+${msg.unreadReplyCount}則未讀</span>` : '';
-            if (!msg.read) card.classList.add('is-unread');
+            // Mark as unread if the message itself is unread OR if it has unread replies
+            if (!msg.read || msg.unreadReplyCount > 0) card.classList.add('is-unread');
             card.innerHTML = `
                 <div class="message-header">
                     <span class="message-sender">${msg.sender_contact || 'Anonymous'}</span>

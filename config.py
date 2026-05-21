@@ -13,6 +13,7 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(days=7)
     JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=30)
     JWT_TOKEN_LOCATION = ["headers", "query_string"]
+    JWT_QUERY_STRING_ARG = "token"
 
     # Upload
     UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
